@@ -1,14 +1,16 @@
 export interface Task {
   id: string;
   title: string;
-  content?: string;
+  description?: string; // Short description for the left panel
+  content?: string; // Full content for the right panel editor
+  imageUrl?: string; // For uploaded images
   parentId?: string | null;
   level: number;
   orderIndex: number;
   isCompleted: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  children?: Task[];
+  createdAt: string; // Use ISO string for consistency
+  updatedAt: string; // Use ISO string for consistency
+  attachments: TaskAttachment[];
 }
 
 export interface TaskAttachment {
@@ -23,15 +25,19 @@ export interface TaskAttachment {
 
 export interface CreateTaskInput {
   title: string;
+  description?: string;
   content?: string;
   parentId?: string | null;
   level: number;
+  orderIndex: number;
 }
 
 export interface UpdateTaskInput {
   id: string;
   title?: string;
+  description?: string;
   content?: string;
+  imageUrl?: string;
   parentId?: string | null;
   level?: number;
   orderIndex?: number;

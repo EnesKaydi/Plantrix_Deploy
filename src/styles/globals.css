@@ -4,11 +4,11 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-gray-200;
   }
   
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-gray-50 text-gray-900 font-sans;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -58,7 +58,7 @@
   
   /* Toolbar Styles */
   .toolbar {
-    @apply flex items-center gap-2 p-4 border-b bg-gray-50/50;
+    @apply flex items-center gap-2 p-4 border-b bg-gray-50/50 flex-wrap;
   }
   
   .toolbar-button {
@@ -123,5 +123,43 @@
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: rgb(148 163 184);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .task-tree {
+      @apply text-sm;
+    }
+    
+    .task-node {
+      @apply p-2 mb-1;
+    }
+    
+    .toolbar {
+      @apply p-2 gap-1;
+    }
+    
+    .toolbar-button {
+      @apply px-2 py-1 text-xs;
+    }
+  }
+
+  /* Focus styles */
+  .task-node:focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+
+  /* Better hover effects */
+  .task-node:hover .flex-1 {
+    @apply transform scale-[1.01];
+  }
+
+  /* Improved animations */
+  .task-node {
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .task-node.dragging {
+    @apply shadow-xl border-primary-400;
   }
 } 

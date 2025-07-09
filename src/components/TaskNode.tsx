@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import * as ContextMenu from '@radix-ui/react-context-menu';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronRight, ChevronDown, CheckSquare, Trash2 } from 'lucide-react';
 import { TaskTreeNode } from '@/types/task';
 import { useTaskStore } from '@/store/taskStore';
 import { cn, getLevelIndentation, getLevelPrefix } from '@/lib/utils';
@@ -14,10 +14,15 @@ interface TaskNodeProps {
 
 export function TaskNode({ task }: TaskNodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const { selectedTaskId, setSelectedTask, toggleTaskCompletion } = useTaskStore();
+  const [isMounted, setIsMounted] = useState(false);
+  const { selectedTaskId, setSelectedTask, toggleTaskCompletion, requestDelete } = useTaskStore();
   
   const isSelected = selectedTaskId === task.id;
   const hasChildren = task.children && task.children.length > 0;
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Drag and Drop setup
   const {
@@ -34,12 +39,34 @@ export function TaskNode({ task }: TaskNodeProps) {
     id: task.id,
   });
 
+  // This prevents the hydration error by ensuring dnd-kit attributes are only applied on the client
+  const dndAttributes = isMounted ? attributes : {};
+
   const handleTaskClick = () => {
     setSelectedTask(task.id);
   };
 
-  const handleToggleCompletion = () => {
+  const handleToggleCompletion = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     toggleTaskCompletion(task.id);
+  };
+
+  const handleDeleteTask = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (confirm(`"${task.title}" görevini ve tüm alt görevlerini silmek istediğinizden emin misiniz?`)) {
+      requestDelete(task.id);
+    }
+  };
+
+  const handleToggleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card from being selected when toggling
+    setIsExpanded(!isExpanded);
   };
 
   const style = transform ? {
@@ -57,23 +84,20 @@ export function TaskNode({ task }: TaskNodeProps) {
             }}
             style={style}
             className={cn(
-              'task-node p-3 mb-2 border rounded-lg transition-all duration-200',
-              task.isCompleted && 'completed bg-success-50 border-success-300',
-              isSelected && 'selected bg-primary-50 border-primary-400',
-              !task.isCompleted && !isSelected && 'bg-white border-gray-300 hover:bg-gray-50',
-              isDragging && 'dragging opacity-50'
+              'task-node p-3 mb-2 border rounded-lg transition-all duration-200 select-none',
+              task.isCompleted && 'completed bg-success-50 border-success-300 text-success-700',
+              isSelected && 'selected bg-primary-100 border-primary-400 shadow-md',
+              !task.isCompleted && !isSelected && 'bg-white border-gray-300 hover:bg-gray-50 hover:shadow-sm',
+              isDragging && 'dragging opacity-50 scale-95'
             )}
             onClick={handleTaskClick}
-            {...attributes}
+            {...dndAttributes}
             {...listeners}
           >
             <div className="flex items-center gap-2">
               {hasChildren && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsExpanded(!isExpanded);
-                  }}
+                  onClick={handleToggleExpand}
                   className="p-1 rounded hover:bg-gray-200 transition-colors"
                 >
                   {isExpanded ? (
@@ -98,9 +122,9 @@ export function TaskNode({ task }: TaskNodeProps) {
                   </span>
                 </div>
                 
-                {task.content && (
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                    {task.content}
+                {task.description && (
+                  <p className="text-sm text-gray-500 mt-1 line-clamp-2 italic">
+                    {task.description}
                   </p>
                 )}
               </div>
@@ -108,20 +132,27 @@ export function TaskNode({ task }: TaskNodeProps) {
           </div>
         </ContextMenu.Trigger>
 
-        <ContextMenu.Portal>
-          <ContextMenu.Content className="context-menu">
-            <ContextMenu.Item 
-              className="context-menu-item"
-              onClick={handleToggleCompletion}
-            >
-              {task.isCompleted ? '❌ Tamamlanmadı olarak işaretle' : '✅ Tamamlandı olarak işaretle'}
-            </ContextMenu.Item>
-            <ContextMenu.Separator className="context-menu-separator" />
-            <ContextMenu.Item className="context-menu-item text-red-600">
-              🗑️ Sil
-            </ContextMenu.Item>
-          </ContextMenu.Content>
-        </ContextMenu.Portal>
+        {isMounted && (
+          <ContextMenu.Portal>
+            <ContextMenu.Content className="w-48 bg-white shadow-lg rounded-md p-1 border border-gray-200">
+              <ContextMenu.Item 
+                className="context-menu-item"
+                onSelect={() => toggleTaskCompletion(task.id)}
+              >
+                <CheckSquare className="mr-2 h-4 w-4" />
+                {task.isCompleted ? 'Yapılmadı Olarak İşaretle' : 'Tamamlandı Olarak İşaretle'}
+              </ContextMenu.Item>
+              <ContextMenu.Separator className="h-px bg-gray-200 my-1" />
+              <ContextMenu.Item 
+                className="context-menu-item text-red-600"
+                onSelect={() => requestDelete(task.id)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Sil
+              </ContextMenu.Item>
+            </ContextMenu.Content>
+          </ContextMenu.Portal>
+        )}
       </ContextMenu.Root>
 
       {/* Child Tasks */}

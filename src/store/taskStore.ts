@@ -6,12 +6,18 @@ interface TaskStore {
   selectedTaskId: string | null;
   isLoading: boolean;
   error: string | null;
+  taskToDeleteId: string | null;
+  isConfirmDialogOpen: boolean;
+  deleteConfirmationEnabled: boolean;
   
   // Actions
   setTasks: (tasks: Task[]) => void;
   addTask: (input: CreateTaskInput) => void;
   updateTask: (input: UpdateTaskInput) => void;
   deleteTask: (id: string) => void;
+  requestDelete: (id: string) => void;
+  confirmDelete: () => void;
+  cancelDelete: () => void;
   toggleTaskCompletion: (id: string) => void;
   setSelectedTask: (id: string | null) => void;
   moveTask: (taskId: string, newParentId: string | null, newOrderIndex: number) => void;
@@ -19,6 +25,7 @@ interface TaskStore {
   getSelectedTask: () => Task | null;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setDeleteConfirmation: (enabled: boolean) => void;
 }
 
 // Utility function to build tree structure
@@ -64,120 +71,176 @@ const generateId = () => `task_${Date.now()}_${Math.random().toString(36).substr
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [
-    // Mock data for initial testing
     {
       id: '1',
       title: 'Başlık 1',
-      content: '',
-      parentId: null,
+      description: 'Bu bir ana görevdir.',
+      content: 'Başlık 1 için detaylı içerik...',
       level: 1,
       orderIndex: 0,
       isCompleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      parentId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      attachments: [],
     },
     {
       id: '2',
       title: 'Alt Başlık 1',
-      content: 'Bu alt başlığın içeriği...',
-      parentId: '1',
+      description: 'Bu alt başlığın içeriği...',
+      content: 'Alt Başlık 1 için daha da detaylı içerik...',
       level: 2,
       orderIndex: 0,
       isCompleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      parentId: '1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      attachments: [],
     },
     {
       id: '3',
-      title: 'Alt Başlık 2',
-      content: '',
-      parentId: '1',
-      level: 2,
-      orderIndex: 1,
-      isCompleted: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: '4',
       title: 'İkinci Derece Alt Başlık 1',
-      content: '',
-      parentId: '2',
+      description: 'Derinlere iniyoruz.',
+      content: 'En alt seviye görevin içeriği.',
       level: 3,
       orderIndex: 0,
       isCompleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      parentId: '2',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      attachments: [],
+    },
+    {
+      id: '4',
+      title: 'Alt Başlık 2',
+      description: 'Tamamlanmış bir görev.',
+      content: '',
+      level: 2,
+      orderIndex: 1,
+      isCompleted: true,
+      parentId: '1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      attachments: [],
     },
   ],
-  selectedTaskId: null,
+  selectedTaskId: '1', // Select the first task by default
   isLoading: false,
   error: null,
+  taskToDeleteId: null,
+  isConfirmDialogOpen: false,
+  deleteConfirmationEnabled: true,
 
   setTasks: (tasks) => set({ tasks }),
 
-  addTask: (input) => {
+  addTask: (input: CreateTaskInput) => {
     const newTask: Task = {
-      id: generateId(),
-      title: input.title,
-      content: input.content || '',
-      parentId: input.parentId,
-      level: input.level,
-      orderIndex: get().tasks.filter(t => t.parentId === input.parentId).length,
+      ...input,
+      id: new Date().toISOString(),
+      content: '',
+      description: '',
       isCompleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      attachments: [],
     };
-
-    set(state => ({
+    set(state => ({ 
       tasks: [...state.tasks, newTask],
+      selectedTaskId: newTask.id, // Automatically select the new task
     }));
   },
 
-  updateTask: (input) => {
+  updateTask: (input: UpdateTaskInput) => {
     set(state => ({
       tasks: state.tasks.map(task =>
         task.id === input.id
-          ? { ...task, ...input, updatedAt: new Date() }
+          ? { ...task, ...input, updatedAt: new Date().toISOString() }
           : task
       ),
     }));
   },
 
-  deleteTask: (id) => {
-    const getAllDescendants = (taskId: string, tasks: Task[]): string[] => {
-      const children = tasks.filter(t => t.parentId === taskId);
-      const descendants = children.map(c => c.id);
-      
-      children.forEach(child => {
-        descendants.push(...getAllDescendants(child.id, tasks));
-      });
-      
-      return descendants;
-    };
-
+  deleteTask: (id: string) => {
     set(state => {
-      const allIdsToDelete = [id, ...getAllDescendants(id, state.tasks)];
+      const tasksToDelete = new Set<string>([id]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        const tasksCount = tasksToDelete.size;
+        state.tasks.forEach(t => {
+          if (t.parentId && tasksToDelete.has(t.parentId)) {
+            tasksToDelete.add(t.id);
+          }
+        });
+        if (tasksToDelete.size > tasksCount) {
+          changed = true;
+        }
+      }
+
+      const remainingTasks = state.tasks.filter(t => !tasksToDelete.has(t.id));
+
+      let nextSelectedId: string | null = null;
+      if (state.selectedTaskId === id || tasksToDelete.has(state.selectedTaskId!)) {
+        const originalTask = state.tasks.find(t => t.id === id);
+        if (originalTask?.parentId) {
+          const siblings = state.tasks.filter(t => t.parentId === originalTask.parentId && t.id !== id);
+          if (siblings.length > 0) {
+            nextSelectedId = siblings[0].id;
+          } else {
+            nextSelectedId = originalTask.parentId;
+          }
+        } else {
+          const topLevelTasks = remainingTasks.filter(t => !t.parentId);
+          if (topLevelTasks.length > 0) {
+            nextSelectedId = topLevelTasks[0].id;
+          }
+        }
+      } else {
+        nextSelectedId = state.selectedTaskId;
+      }
+
       return {
-        tasks: state.tasks.filter(task => !allIdsToDelete.includes(task.id)),
-        selectedTaskId: allIdsToDelete.includes(state.selectedTaskId || '') 
-          ? null 
-          : state.selectedTaskId,
+        tasks: remainingTasks,
+        selectedTaskId: nextSelectedId,
       };
     });
+  },
+
+  requestDelete: (id: string) => {
+    if (get().deleteConfirmationEnabled) {
+      set({ isConfirmDialogOpen: true, taskToDeleteId: id });
+    } else {
+      get().deleteTask(id);
+    }
+  },
+
+  confirmDelete: () => {
+    const { taskToDeleteId } = get();
+    if (taskToDeleteId) {
+      get().deleteTask(taskToDeleteId);
+    }
+    set({ isConfirmDialogOpen: false, taskToDeleteId: null });
+  },
+
+  cancelDelete: () => {
+    set({ isConfirmDialogOpen: false, taskToDeleteId: null });
   },
 
   toggleTaskCompletion: (id) => {
     set(state => ({
       tasks: state.tasks.map(task =>
         task.id === id
-          ? { ...task, isCompleted: !task.isCompleted, updatedAt: new Date() }
+          ? { ...task, isCompleted: !task.isCompleted, updatedAt: new Date().toISOString() }
           : task
       ),
     }));
   },
 
-  setSelectedTask: (id) => set({ selectedTaskId: id }),
+  setSelectedTask: (id) => {
+    if (get().tasks.find(t => t.id === id)) {
+      set({ selectedTaskId: id });
+    }
+  },
 
   moveTask: (taskId, newParentId, newOrderIndex) => {
     set(state => ({
@@ -190,7 +253,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
                 ? (state.tasks.find(t => t.id === newParentId)?.level || 0) + 1 
                 : 1,
               orderIndex: newOrderIndex,
-              updatedAt: new Date() 
+              updatedAt: new Date().toISOString() 
             }
           : task
       ),
@@ -208,4 +271,17 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
-})); 
+  setDeleteConfirmation: (enabled: boolean) => {
+    set({ deleteConfirmationEnabled: enabled });
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('deleteConfirmationEnabled', JSON.stringify(enabled));
+    }
+  },
+}));
+
+if (typeof window !== 'undefined') {
+  const enabled = localStorage.getItem('deleteConfirmationEnabled');
+  useTaskStore.setState({ 
+    deleteConfirmationEnabled: enabled ? JSON.parse(enabled) : true 
+  });
+} 

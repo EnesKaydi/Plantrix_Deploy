@@ -1,89 +1,140 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, Plus, Trash2, Printer, Image } from 'lucide-react';
+import { FileText, Plus, Trash2, Printer, Image as ImageIcon, Check, X } from 'lucide-react';
 import { useTaskStore } from '@/store/taskStore';
 import { debounce } from '@/lib/utils';
+import Image from 'next/image';
 
 export function TaskEditor() {
   const { 
+    tasks,
     getSelectedTask, 
     addTask, 
     updateTask, 
-    deleteTask, 
-    selectedTaskId 
+    deleteTask,
   } = useTaskStore();
   
   const selectedTask = getSelectedTask();
   const [content, setContent] = useState('');
+  const [description, setDescription] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Auto-save content with debounce
-  const debouncedSave = debounce((newContent: string) => {
+  const debouncedContentSave = debounce((newContent: string) => {
     if (selectedTask) {
       updateTask({ id: selectedTask.id, content: newContent });
     }
-  }, 2000);
+  }, 1000);
+
+  const debouncedDescriptionSave = debounce((newDescription: string) => {
+    if (selectedTask) {
+      updateTask({ id: selectedTask.id, description: newDescription });
+    }
+  }, 1000);
 
   useEffect(() => {
     if (selectedTask) {
       setContent(selectedTask.content || '');
+      setDescription(selectedTask.description || '');
+      setTitleValue(selectedTask.title);
+      setIsEditingTitle(false);
     } else {
       setContent('');
+      setDescription('');
+      setTitleValue('');
+      setIsEditingTitle(false);
     }
-  }, [selectedTask]);
+  }, [selectedTask?.id]); // FIX: Depend only on the task ID
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const handleTitleEdit = () => {
+    if (!selectedTask) return;
+    setIsEditingTitle(true);
+  };
+
+  const handleTitleSave = () => {
+    if (!selectedTask || !titleValue.trim()) {
+      handleTitleCancel();
+      return;
+    }
+    updateTask({ id: selectedTask.id, title: titleValue.trim() });
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleCancel = () => {
+    if (selectedTask) setTitleValue(selectedTask.title);
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleTitleSave();
+    } else if (e.key === 'Escape') {
+      handleTitleCancel();
+    }
+  };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
     setContent(newContent);
-    debouncedSave(newContent);
+    debouncedContentSave(newContent);
+  };
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDescription = e.target.value;
+    setDescription(newDescription);
+    debouncedDescriptionSave(newDescription);
   };
 
   const handleAddPage = () => {
-    addTask({
-      title: 'Yeni Başlık',
-      content: '',
-      parentId: null,
-      level: 1,
-    });
+    const selectedTask = getSelectedTask();
+    if (selectedTask) {
+      // Create a sibling to the selected task
+      const parentId = selectedTask.parentId;
+      const level = selectedTask.level;
+      const orderIndex = tasks.filter(t => t.parentId === parentId).length;
+      addTask({
+        title: 'Yeni Sayfa',
+        parentId,
+        orderIndex,
+        level,
+      });
+    } else {
+      // Create a new top-level task if nothing is selected
+      const orderIndex = tasks.filter(t => t.parentId === null).length;
+      addTask({ title: 'Yeni Sayfa', parentId: null, orderIndex, level: 1 });
+    }
   };
 
   const handleAddSubPage = () => {
     if (!selectedTask) return;
-    
-    addTask({
-      title: 'Yeni Alt Başlık',
-      content: '',
-      parentId: selectedTask.id,
-      level: selectedTask.level + 1,
-    });
+    const orderIndex = tasks.filter(t => t.parentId === selectedTask.id).length;
+    addTask({ title: 'Yeni Alt Sayfa', parentId: selectedTask.id, orderIndex, level: selectedTask.level + 1 });
   };
 
-  const handleDeleteTask = () => {
-    if (!selectedTask) return;
-    
-    if (confirm('Bu görevi ve tüm alt görevlerini silmek istediğinizden emin misiniz?')) {
+  const handleDelete = () => {
+    if (selectedTask) {
       deleteTask(selectedTask.id);
     }
   };
 
   const handlePrint = () => {
     if (!selectedTask) return;
-    
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`
         <html>
-          <head>
-            <title>${selectedTask.title}</title>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 40px; }
-              h1 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-              .content { margin-top: 20px; white-space: pre-wrap; }
-            </style>
-          </head>
+          <head><title>${selectedTask.title}</title></head>
           <body>
             <h1>${selectedTask.title}</h1>
-            <div class="content">${selectedTask.content || 'İçerik bulunmuyor'}</div>
+            ${selectedTask.imageUrl ? `<img src="${selectedTask.imageUrl}" style="max-width: 100%;" />` : ''}
+            <div style="white-space: pre-wrap; margin-top: 20px;">${selectedTask.content || ''}</div>
           </body>
         </html>
       `);
@@ -94,110 +145,102 @@ export function TaskEditor() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Placeholder for image upload functionality
-      console.log('Image upload:', file.name);
-      // TODO: Implement image upload to server/storage
+    if (file && selectedTask) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        updateTask({ id: selectedTask.id, imageUrl: base64String });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Toolbar */}
       <div className="toolbar">
-        <button
-          onClick={handleAddPage}
-          className="toolbar-button primary"
-          title="Yeni Sayfa Ekle"
-        >
-          <FileText className="h-4 w-4 mr-2" />
-          Sayfa Ekle
+        <button onClick={handleAddPage} className="toolbar-button primary" title="Yeni Ana Görev Ekle">
+          <FileText className="h-4 w-4 mr-2" /> Sayfa Ekle
         </button>
-        
-        <button
-          onClick={handleAddSubPage}
-          disabled={!selectedTask}
-          className="toolbar-button"
-          title="Alt Sayfa Ekle"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Alt Sayfa Ekle
+        <button onClick={handleAddSubPage} disabled={!selectedTask} className="toolbar-button" title="Seçili Göreve Alt Sayfa Ekle">
+          <Plus className="h-4 w-4 mr-2" /> Alt Sayfa Ekle
         </button>
-        
-        <button
-          onClick={handleDeleteTask}
-          disabled={!selectedTask}
-          className="toolbar-button danger"
-          title="Seçili Sayfayı Sil"
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Sil
+        <button onClick={handleDelete} disabled={!selectedTask} className="toolbar-button danger" title="Seçili Sayfayı Sil">
+          <Trash2 className="h-4 w-4 mr-2" /> Sil
         </button>
-        
-        <button
-          onClick={handlePrint}
-          disabled={!selectedTask}
-          className="toolbar-button"
-          title="Yazdır"
-        >
-          <Printer className="h-4 w-4 mr-2" />
-          Yazdır
+        <button onClick={handlePrint} disabled={!selectedTask} className="toolbar-button" title="Yazdır">
+          <Printer className="h-4 w-4 mr-2" /> Yazdır
         </button>
-
         <div className="flex-1" />
-
-        <label className="toolbar-button cursor-pointer">
-          <Image className="h-4 w-4 mr-2" />
-          Resim Yükle
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="hidden"
-          />
+        <label className={`toolbar-button cursor-pointer ${!selectedTask ? 'disabled:opacity-50 disabled:cursor-not-allowed' : ''}`}>
+          <ImageIcon className="h-4 w-4 mr-2" /> Resim Yükle
+          <input type="file" accept="image/*" onChange={handleImageUpload} disabled={!selectedTask} className="hidden" />
         </label>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-y-auto">
         {selectedTask ? (
           <>
-            {/* Task Title */}
-            <div className="p-4 border-b bg-white">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {selectedTask.title}
-              </h2>
+            <div className="p-4 border-b bg-white sticky top-0 z-10">
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={titleValue}
+                    onChange={(e) => setTitleValue(e.target.value)}
+                    onKeyDown={handleTitleKeyDown}
+                    onBlur={handleTitleSave}
+                    className="text-xl font-semibold text-gray-900 bg-gray-100 rounded px-2 py-1 flex-1"
+                    autoFocus
+                  />
+                  <button onClick={handleTitleSave} className="p-1 text-green-600 hover:bg-green-100 rounded-full" title="Kaydet"><Check size={18} /></button>
+                  <button onClick={handleTitleCancel} className="p-1 text-red-600 hover:bg-red-100 rounded-full" title="İptal"><X size={18} /></button>
+                </div>
+              ) : (
+                <h2 className="text-2xl font-bold" onClick={handleTitleEdit}>
+                  {selectedTask.title}
+                </h2>
+              )}
               <p className="text-sm text-gray-500 mt-1">
-                Level {selectedTask.level} • Son güncelleme: {' '}
-                {new Intl.DateTimeFormat('tr-TR', {
-                  day: 'numeric',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                }).format(selectedTask.updatedAt)}
+                Seviye {selectedTask.level} • Son Güncelleme: {isMounted ? new Date(selectedTask.updatedAt).toLocaleString('tr-TR') : '...'}
               </p>
+              <input
+                type="text"
+                value={description}
+                onChange={handleDescriptionChange}
+                placeholder="Sol panelde görünecek kısa açıklama..."
+                className="w-full text-sm mt-2 p-2 bg-gray-100 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
             </div>
-
-            {/* Content Editor */}
-            <div className="flex-1 p-4">
+            <div className="p-6 flex-1">
+              {selectedTask.imageUrl && (
+                <div className="mb-4 relative group">
+                  <Image src={selectedTask.imageUrl} alt={selectedTask.title} width={400} height={300} className="rounded-lg shadow-md max-w-full h-auto" />
+                  <button 
+                    onClick={() => updateTask({ id: selectedTask.id, imageUrl: '' })}
+                    className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Resmi Kaldır"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
               <textarea
                 value={content}
                 onChange={handleContentChange}
-                placeholder="İçerik yazın..."
-                className="w-full h-full resize-none border-none outline-none text-gray-900 placeholder-gray-400"
-                style={{ minHeight: '400px' }}
+                placeholder="İçerik eklemek için buraya yazın..."
+                className="w-full h-full resize-none border-none outline-none bg-transparent text-gray-800 placeholder-gray-400"
+                style={{ minHeight: '300px' }}
               />
             </div>
           </>
         ) : (
-          /* Empty State */
           <div className="flex-1 flex items-center justify-center text-gray-500">
             <div className="text-center">
               <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium mb-2">Görev Seçin</h3>
-              <p className="text-sm">
-                Sol panelden bir görev seçin veya yeni görev oluşturun
-              </p>
+              <h3 className="text-lg font-medium mb-2">Görev Seçilmedi</h3>
+              <p className="text-sm">Görüntülemek için bir görev seçin veya yeni bir tane oluşturun.</p>
             </div>
           </div>
         )}

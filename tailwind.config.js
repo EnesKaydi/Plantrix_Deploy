@@ -11,14 +11,19 @@ module.exports = {
       colors: {
         primary: {
           50: '#eff6ff',
+          100: '#dbeafe',
+          400: '#60a5fa',
           500: '#3b82f6',
           600: '#2563eb',
           700: '#1d4ed8',
         },
         success: {
           50: '#f0fdf4',
+          100: '#dcfce7',
+          300: '#86efac',
           500: '#22c55e',
           600: '#16a34a',
+          700: '#15803d',
         }
       },
       animation: {
@@ -37,5 +42,29 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function({ addUtilities }) {
+      const newUtilities = {
+        '.line-clamp-1': {
+          overflow: 'hidden',
+          display: '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '1',
+        },
+        '.line-clamp-2': {
+          overflow: 'hidden',
+          display: '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '2',
+        },
+        '.line-clamp-3': {
+          overflow: 'hidden',
+          display: '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '3',
+        },
+      }
+      addUtilities(newUtilities)
+    }
+  ],
 } 
