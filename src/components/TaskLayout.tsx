@@ -15,9 +15,13 @@ import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { SearchBar } from './SearchBar'; // Import SearchBar
 import { RainEffect } from './RainEffect'; // Import RainEffect
 import { ThemeSwitcher } from './ThemeSwitcher';
+import { useAuthStore } from '@/store/authStore';
+import { LogOut } from 'lucide-react';
+import { Button } from './ui/button';
 
 export function TaskLayout() {
   const { moveTask } = useTaskStore();
+  const { user, logout } = useAuthStore();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -37,12 +41,18 @@ export function TaskLayout() {
   return (
     <div className="h-screen flex flex-col bg-background">
       <header className="p-5 border-b bg-card text-card-foreground relative overflow-hidden">
-        <div className="flex justify-between items-start relative z-10">
+        <div className="flex justify-between items-center relative z-10">
           <div>
             <h1 className="text-4xl font-bold plantrix-title w-fit">PLANTRİX</h1>
             <p className="text-sm text-muted-foreground mt-1">hiç sıradan değil</p>
           </div>
-          <ThemeSwitcher />
+          <div className="flex items-center gap-4">
+            {user && <span className="text-sm welcome-text-animated">Hoş geldin, {user.firstName}!</span>}
+            <ThemeSwitcher />
+            <Button variant="ghost" size="icon" onClick={logout} aria-label="Logout">
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
         <RainEffect />
       </header>

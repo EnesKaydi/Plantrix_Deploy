@@ -317,6 +317,16 @@
     transform: scale(1.05); /* Add a subtle scale effect on hover */
   }
 
+  .welcome-text-animated {
+    font-weight: 600; /* Make it a bit bolder */
+    color: transparent;
+    background-image: linear-gradient(to right, #a855f7, #ec4899, #22d3ee, #6366f1, #a855f7);
+    background-size: 250% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: text-gradient-animation 5s ease-in-out infinite;
+  }
+
   @keyframes text-gradient-animation {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
@@ -342,5 +352,12 @@
     to {
       transform: translateY(150px);
     }
+  }
+
+  /* Styling for the authentication pages background panel */
+  .auth-image-panel {
+    background-image: url('/PLANTRİX1.jpg');
+    background-size: cover;
+    background-position: center;
   }
 } 
