@@ -133,7 +133,7 @@ export function TaskEditor() {
           <head><title>${selectedTask.title}</title></head>
           <body>
             <h1>${selectedTask.title}</h1>
-            ${selectedTask.imageUrl ? `<img src="${selectedTask.imageUrl}" style="max-width: 100%;" />` : ''}
+            ${selectedTask.imageUrls ? selectedTask.imageUrls.map(url => `<img src="${url}" style="max-width: 100%;" />`).join('') : ''}
             <div style="white-space: pre-wrap; margin-top: 20px;">${selectedTask.content || ''}</div>
           </body>
         </html>
@@ -148,12 +148,32 @@ export function TaskEditor() {
     if (file && selectedTask) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result as string;
-        updateTask({ id: selectedTask.id, imageUrl: base64String });
+        const newImageUrl = reader.result as string;
+        const updatedImageUrls = [...(selectedTask.imageUrls || []), newImageUrl];
+        updateTask({ id: selectedTask.id, imageUrls: updatedImageUrls });
       };
       reader.readAsDataURL(file);
     }
   };
+
+  const handleRemoveImage = (urlToRemove: string) => {
+    if (selectedTask) {
+      const updatedImageUrls = (selectedTask.imageUrls || []).filter(url => url !== urlToRemove);
+      updateTask({ id: selectedTask.id, imageUrls: updatedImageUrls });
+    }
+  };
+
+  if (!selectedTask) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-gray-500">
+        <div className="text-center">
+          <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+          <h3 className="text-lg font-medium mb-2">Görev Seçilmedi</h3>
+          <p className="text-sm">Görüntülemek için bir görev seçin veya yeni bir tane oluşturun.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -180,70 +200,66 @@ export function TaskEditor() {
 
       {/* Content Area */}
       <div className="flex-1 flex flex-col overflow-y-auto">
-        {selectedTask ? (
-          <>
-            <div className="p-4 border-b bg-white sticky top-0 z-10">
-              {isEditingTitle ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={titleValue}
-                    onChange={(e) => setTitleValue(e.target.value)}
-                    onKeyDown={handleTitleKeyDown}
-                    onBlur={handleTitleSave}
-                    className="text-xl font-semibold text-gray-900 bg-gray-100 rounded px-2 py-1 flex-1"
-                    autoFocus
-                  />
-                  <button onClick={handleTitleSave} className="p-1 text-green-600 hover:bg-green-100 rounded-full" title="Kaydet"><Check size={18} /></button>
-                  <button onClick={handleTitleCancel} className="p-1 text-red-600 hover:bg-red-100 rounded-full" title="İptal"><X size={18} /></button>
-                </div>
-              ) : (
-                <h2 className="text-2xl font-bold" onClick={handleTitleEdit}>
-                  {selectedTask.title}
-                </h2>
-              )}
-              <p className="text-sm text-gray-500 mt-1">
-                Seviye {selectedTask.level} • Son Güncelleme: {isMounted ? new Date(selectedTask.updatedAt).toLocaleString('tr-TR') : '...'}
-              </p>
+        <div className="p-4 border-b bg-white sticky top-0 z-10">
+          {isEditingTitle ? (
+            <div className="flex items-center gap-2">
               <input
                 type="text"
-                value={description}
-                onChange={handleDescriptionChange}
-                placeholder="Sol panelde görünecek kısa açıklama..."
-                className="w-full text-sm mt-2 p-2 bg-gray-100 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onKeyDown={handleTitleKeyDown}
+                onBlur={handleTitleSave}
+                className="text-xl font-semibold text-gray-900 bg-gray-100 rounded px-2 py-1 flex-1"
+                autoFocus
               />
+              <button onClick={handleTitleSave} className="p-1 text-green-600 hover:bg-green-100 rounded-full" title="Kaydet"><Check size={18} /></button>
+              <button onClick={handleTitleCancel} className="p-1 text-red-600 hover:bg-red-100 rounded-full" title="İptal"><X size={18} /></button>
             </div>
-            <div className="p-6 flex-1">
-              {selectedTask.imageUrl && (
-                <div className="mb-4 relative group">
-                  <Image src={selectedTask.imageUrl} alt={selectedTask.title} width={400} height={300} className="rounded-lg shadow-md max-w-full h-auto" />
-                  <button 
-                    onClick={() => updateTask({ id: selectedTask.id, imageUrl: '' })}
-                    className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Resmi Kaldır"
+          ) : (
+            <h2 className="text-2xl font-bold" onClick={handleTitleEdit}>
+              {selectedTask.title}
+            </h2>
+          )}
+          <p className="text-sm text-gray-500 mt-1">
+            Seviye {selectedTask.level} • Son Güncelleme: {isMounted ? new Date(selectedTask.updatedAt).toLocaleString('tr-TR') : '...'}
+          </p>
+          <input
+            type="text"
+            value={description}
+            onChange={handleDescriptionChange}
+            placeholder="Sol panelde görünecek kısa açıklama..."
+            className="w-full text-sm mt-2 p-2 bg-gray-100 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+        <div className="p-6 flex-1">
+          {selectedTask.imageUrls && selectedTask.imageUrls.length > 0 && (
+            <div className="mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {selectedTask.imageUrls.map((url, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={url}
+                    alt={`Uploaded content ${index + 1}`}
+                    className="rounded-lg object-cover w-full h-32"
+                  />
+                  <button
+                    onClick={() => handleRemoveImage(url)}
+                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove image"
                   >
-                    <X size={16} />
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
-              )}
-              <textarea
-                value={content}
-                onChange={handleContentChange}
-                placeholder="İçerik eklemek için buraya yazın..."
-                className="w-full h-full resize-none border-none outline-none bg-transparent text-gray-800 placeholder-gray-400"
-                style={{ minHeight: '300px' }}
-              />
+              ))}
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium mb-2">Görev Seçilmedi</h3>
-              <p className="text-sm">Görüntülemek için bir görev seçin veya yeni bir tane oluşturun.</p>
-            </div>
-          </div>
-        )}
+          )}
+          <textarea
+            value={content}
+            onChange={handleContentChange}
+            placeholder="İçerik eklemek için buraya yazın..."
+            className="w-full h-full resize-none border-none outline-none bg-transparent text-gray-800 placeholder-gray-400"
+            style={{ minHeight: '300px' }}
+          />
+        </div>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ export interface Task {
   title: string;
   description?: string; // Short description for the left panel
   content?: string; // Full content for the right panel editor
-  imageUrl?: string; // For uploaded images
+  imageUrls?: string[]; // Allow multiple images
   parentId?: string | null;
   level: number;
   orderIndex: number;
@@ -37,7 +37,7 @@ export interface UpdateTaskInput {
   title?: string;
   description?: string;
   content?: string;
-  imageUrl?: string;
+  imageUrls?: string[]; // Allow multiple images
   parentId?: string | null;
   level?: number;
   orderIndex?: number;

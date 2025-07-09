@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Task, CreateTaskInput, UpdateTaskInput, TaskTreeNode } from '@/types/task';
+import { DragEndEvent } from '@dnd-kit/core';
 
 interface TaskStore {
   tasks: Task[];
@@ -20,7 +21,7 @@ interface TaskStore {
   cancelDelete: () => void;
   toggleTaskCompletion: (id: string) => void;
   setSelectedTask: (id: string | null) => void;
-  moveTask: (taskId: string, newParentId: string | null, newOrderIndex: number) => void;
+  moveTask: (event: DragEndEvent) => void;
   getTaskTree: () => TaskTreeNode[];
   getSelectedTask: () => Task | null;
   setLoading: (loading: boolean) => void;
@@ -76,6 +77,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       title: 'Başlık 1',
       description: 'Bu bir ana görevdir.',
       content: 'Başlık 1 için detaylı içerik...',
+      imageUrls: [],
       level: 1,
       orderIndex: 0,
       isCompleted: false,
@@ -89,6 +91,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       title: 'Alt Başlık 1',
       description: 'Bu alt başlığın içeriği...',
       content: 'Alt Başlık 1 için daha da detaylı içerik...',
+      imageUrls: [],
       level: 2,
       orderIndex: 0,
       isCompleted: false,
@@ -102,6 +105,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       title: 'İkinci Derece Alt Başlık 1',
       description: 'Derinlere iniyoruz.',
       content: 'En alt seviye görevin içeriği.',
+      imageUrls: [],
       level: 3,
       orderIndex: 0,
       isCompleted: false,
@@ -115,6 +119,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       title: 'Alt Başlık 2',
       description: 'Tamamlanmış bir görev.',
       content: '',
+      imageUrls: [],
       level: 2,
       orderIndex: 1,
       isCompleted: true,
@@ -140,6 +145,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       content: '',
       description: '',
       isCompleted: false,
+      imageUrls: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       attachments: [],
@@ -242,27 +248,81 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 
-  moveTask: (taskId, newParentId, newOrderIndex) => {
-    set(state => ({
-      tasks: state.tasks.map(task =>
-        task.id === taskId
-          ? { 
-              ...task, 
-              parentId: newParentId, 
-              level: newParentId 
-                ? (state.tasks.find(t => t.id === newParentId)?.level || 0) + 1 
-                : 1,
-              orderIndex: newOrderIndex,
-              updatedAt: new Date().toISOString() 
-            }
-          : task
-      ),
-    }));
+  moveTask: (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    set(state => {
+      const tasks = state.tasks;
+      const draggedTask = tasks.find(t => t.id === active.id);
+      const dropTargetTask = tasks.find(t => t.id === over.id);
+
+      if (!draggedTask || !dropTargetTask) {
+        return {};
+      }
+
+      // Prevent dropping a task on its own descendant
+      let currentParentId = dropTargetTask.parentId;
+      while (currentParentId) {
+        if (currentParentId === draggedTask.id) {
+          console.warn("Cannot drop a task into one of its own children.");
+          return {}; // Invalid move
+        }
+        const parentTask = tasks.find(t => t.id === currentParentId);
+        currentParentId = parentTask ? parentTask.parentId : null;
+      }
+      
+      const oldParentId = draggedTask.parentId;
+
+      // Create a mutable copy of tasks
+      let newTasks = tasks.map(t => ({ ...t }));
+
+      // 1. Update the dragged task's properties
+      const taskToUpdate = newTasks.find(t => t.id === active.id)!;
+      taskToUpdate.parentId = dropTargetTask.id;
+      taskToUpdate.level = dropTargetTask.level + 1;
+      taskToUpdate.updatedAt = new Date().toISOString();
+
+      // 2. Recursively update levels for all children of the dragged task
+      const updateChildrenLevels = (parentId: string, newLevel: number) => {
+        const children = newTasks.filter(t => t.parentId === parentId);
+        children.forEach(child => {
+          const childToUpdate = newTasks.find(t => t.id === child.id)!;
+          childToUpdate.level = newLevel;
+          updateChildrenLevels(child.id, newLevel + 1);
+        });
+      };
+      updateChildrenLevels(taskToUpdate.id, taskToUpdate.level + 1);
+      
+      // 3. Re-calculate orderIndex for old and new siblings
+      const reorderSiblings = (parentId: string | null) => {
+        newTasks
+          .filter(t => t.parentId === parentId)
+          .sort((a, b) => a.orderIndex - b.orderIndex)
+          .forEach((task, index) => {
+            const taskInNewArray = newTasks.find(t => t.id === task.id)!;
+            taskInNewArray.orderIndex = index;
+          });
+      };
+
+      // Reorder old siblings (if the parent has changed)
+      if(oldParentId !== taskToUpdate.parentId) {
+        reorderSiblings(oldParentId);
+      }
+      
+      // Set the order for the moved task and reorder new siblings
+      const newSiblings = newTasks.filter(t => t.parentId === taskToUpdate.parentId);
+      taskToUpdate.orderIndex = newSiblings.length - 1;
+      reorderSiblings(dropTargetTask.id);
+
+      return { tasks: newTasks };
+    });
   },
 
-  getTaskTree: () => {
-    return buildTaskTree(get().tasks);
-  },
+  getTaskTree: () => buildTaskTree(get().tasks),
 
   getSelectedTask: () => {
     const state = get();

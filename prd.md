@@ -217,6 +217,27 @@ created_at: TIMESTAMP DEFAULT NOW()
 - 🎨 Theme customization
 - 📤 Export/Import functionality
 
+## Tamamlananlar
+
+- **Arayüz (UI/UX)**
+  - Ana ekran, %30 sol panel (görev ağacı) ve %70 sağ panel (içerik) olarak bölünecektir.
+  - Tasarım, modern ve kullanıcı dostu bir estetiğe sahip olacaktır.
+- **Sol Panel - Görev Ağacı**
+  - Kullanıcılar, sürükle-bırak yöntemiyle görevleri ve başlıkları yeniden sıralayabilir.
+  - Sağ tık menüsü ile bir görevi "tamamlandı" olarak işaretleme. Tamamlanan görevler yeşil bir çerçeve ile belirtilir.
+  - Sınırsız derinlikte alt başlık (nested tasks) oluşturulabilme.
+- **Sağ Panel - Görev İçeriği**
+  - Üst kısımda "Sayfa Ekle", "Alt Sayfa Ekle", "Sil" ve "Yazdır" butonları içeren bir araç çubuğu.
+  - Seçili görevin içeriğini düzenlemek için bir metin editörü.
+  - Görev içeriğine resim ekleme ve düzenleme imkanı.
+- **Modülerlik ve Genişletilebilirlik**
+  - Gelecekte eklenebilecek yeni özellikler (örn. etiketleme, tarih atama) için genişletilebilir bir kod yapısı.
+  - Bileşenlerin (sol panel, sağ panel, editör) kendi içlerinde kapalı ve yeniden kullanılabilir olması.
+
+---
+
+**Notlar:** Projenin başlangıç aşaması için veritabanı veya backend entegrasyonu olmayacaktır. Tüm veriler, tarayıcının local state'inde yönetilecektir.
+
 ---
 
 **Son Güncelleme**: 2024
