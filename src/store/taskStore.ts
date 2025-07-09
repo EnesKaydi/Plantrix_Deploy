@@ -78,6 +78,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       description: 'Bu bir ana görevdir.',
       content: 'Başlık 1 için detaylı içerik...',
       imageUrls: [],
+      emoji: '🏠',
       level: 1,
       orderIndex: 0,
       isCompleted: false,
@@ -92,6 +93,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       description: 'Bu alt başlığın içeriği...',
       content: 'Alt Başlık 1 için daha da detaylı içerik...',
       imageUrls: [],
+      emoji: '📄',
       level: 2,
       orderIndex: 0,
       isCompleted: false,
@@ -106,6 +108,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       description: 'Derinlere iniyoruz.',
       content: 'En alt seviye görevin içeriği.',
       imageUrls: [],
+      emoji: '✍️',
       level: 3,
       orderIndex: 0,
       isCompleted: false,
@@ -120,6 +123,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       description: 'Tamamlanmış bir görev.',
       content: '',
       imageUrls: [],
+      emoji: '✅',
       level: 2,
       orderIndex: 1,
       isCompleted: true,
@@ -146,6 +150,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       description: '',
       isCompleted: false,
       imageUrls: [],
+      emoji: '📄',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       attachments: [],
@@ -310,6 +315,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
       // Reorder old siblings (if the parent has changed)
       if(oldParentId !== taskToUpdate.parentId) {
+        // @ts-ignore
         reorderSiblings(oldParentId);
       }
       

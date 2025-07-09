@@ -4,6 +4,7 @@ export interface Task {
   description?: string; // Short description for the left panel
   content?: string; // Full content for the right panel editor
   imageUrls?: string[]; // Allow multiple images
+  emoji?: string; // Unified field for task icon
   parentId?: string | null;
   level: number;
   orderIndex: number;
@@ -38,6 +39,7 @@ export interface UpdateTaskInput {
   description?: string;
   content?: string;
   imageUrls?: string[]; // Allow multiple images
+  emoji?: string;
   parentId?: string | null;
   level?: number;
   orderIndex?: number;

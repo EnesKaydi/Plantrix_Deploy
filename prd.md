@@ -45,8 +45,7 @@ Hiyerarşik yapıda organize edilebilen, interaktif to-do yönetim web uygulamas
 #### 1.1 Hiyerarşik Yapı
 - **Başlık** (Level 1)
   - **Alt Başlık** (Level 2)
-    - **İkinci Derece Alt Başlık** (Level 3)
-      - **Üçüncü Derece Alt Başlık** (Level 4)
+    - **İkinci Derece Alt Başlık** (Level 3 **Üçüncü Derece Alt Başlık** (Level 4)
         - ... (sınırsız derinlik)
 
 #### 1.2 Görev İşlemleri
@@ -229,7 +228,7 @@ created_at: TIMESTAMP DEFAULT NOW()
 - **Sağ Panel - Görev İçeriği**
   - Üst kısımda "Sayfa Ekle", "Alt Sayfa Ekle", "Sil" ve "Yazdır" butonları içeren bir araç çubuğu.
   - Seçili görevin içeriğini düzenlemek için bir metin editörü.
-  - Görev içeriğine resim ekleme ve düzenleme imkanı.
+  - Görev içeriğine resim ekleme ve düzenleme imkanı (çoklu resim desteği dahil).
 - **Modülerlik ve Genişletilebilirlik**
   - Gelecekte eklenebilecek yeni özellikler (örn. etiketleme, tarih atama) için genişletilebilir bir kod yapısı.
   - Bileşenlerin (sol panel, sağ panel, editör) kendi içlerinde kapalı ve yeniden kullanılabilir olması.

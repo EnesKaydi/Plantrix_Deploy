@@ -84,17 +84,19 @@ export function TaskNode({ task }: TaskNodeProps) {
             }}
             style={style}
             className={cn(
-              'task-node p-3 mb-2 border rounded-lg transition-all duration-200 select-none',
-              task.isCompleted && 'completed bg-success-50 border-success-300 text-success-700',
-              isSelected && 'selected bg-primary-100 border-primary-400 shadow-md',
-              !task.isCompleted && !isSelected && 'bg-white border-gray-300 hover:bg-gray-50 hover:shadow-sm',
+              'task-node p-3 mb-2 border rounded-lg transition-all duration-200 select-none cursor-pointer',
+              'hover:shadow-md hover:border-primary/50',
+              task.isCompleted && 'bg-success-100/30 border-success-300/50 text-muted-foreground line-through',
+              isSelected && 'bg-primary/10 border-primary shadow-lg',
+              !task.isCompleted && !isSelected && 'bg-card border-border',
               isDragging && 'dragging opacity-50 scale-95'
             )}
             onClick={handleTaskClick}
             {...dndAttributes}
             {...listeners}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl w-9 text-center">{task.emoji || '📄'}</span>
               {hasChildren && (
                 <button
                   onClick={handleToggleExpand}
@@ -108,22 +110,19 @@ export function TaskNode({ task }: TaskNodeProps) {
                 </button>
               )}
               
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 font-mono">
-                    {getLevelPrefix(task.level)}
-                  </span>
+              <div className="flex-1 overflow-hidden">
+                <div className="flex items-center">
+                  <span className="font-mono text-xs text-muted-foreground mr-2">{getLevelPrefix(task.level)}</span>
                   <span className={cn(
-                    'font-medium',
-                    task.isCompleted && 'line-through text-success-600',
-                    !task.isCompleted && 'text-gray-900'
+                    'font-medium truncate',
+                    task.isCompleted ? 'text-muted-foreground' : 'text-card-foreground'
                   )}>
                     {task.title}
                   </span>
                 </div>
                 
                 {task.description && (
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-2 italic">
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2 italic">
                     {task.description}
                   </p>
                 )}
@@ -134,17 +133,17 @@ export function TaskNode({ task }: TaskNodeProps) {
 
         {isMounted && (
           <ContextMenu.Portal>
-            <ContextMenu.Content className="w-48 bg-white shadow-lg rounded-md p-1 border border-gray-200">
+            <ContextMenu.Content className="w-56 bg-card border rounded-md shadow-lg p-1">
               <ContextMenu.Item 
                 className="context-menu-item"
                 onSelect={() => toggleTaskCompletion(task.id)}
               >
                 <CheckSquare className="mr-2 h-4 w-4" />
-                {task.isCompleted ? 'Yapılmadı Olarak İşaretle' : 'Tamamlandı Olarak İşaretle'}
+                <span>{task.isCompleted ? 'Yapılmadı Olarak İşaretle' : 'Tamamlandı Olarak İşaretle'}</span>
               </ContextMenu.Item>
-              <ContextMenu.Separator className="h-px bg-gray-200 my-1" />
+              <ContextMenu.Separator className="h-px bg-border my-1" />
               <ContextMenu.Item 
-                className="context-menu-item text-red-600"
+                className="context-menu-item destructive"
                 onSelect={() => requestDelete(task.id)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
