@@ -9,6 +9,7 @@ export interface Task {
   level: number;
   orderIndex: number;
   isCompleted: boolean;
+  isImportant: boolean; // Add isImportant
   createdAt: string; // Use ISO string for consistency
   updatedAt: string; // Use ISO string for consistency
   attachments: TaskAttachment[];
@@ -48,6 +49,7 @@ export interface UpdateTaskInput {
 
 export interface TaskTreeNode extends Task {
   children: TaskTreeNode[];
+  isExpanded?: boolean; // For search result expansion
 }
 
 export type DragEndEvent = {

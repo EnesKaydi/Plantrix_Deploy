@@ -12,6 +12,9 @@ import { TaskTreeView } from './TaskTreeView';
 import { TaskEditor } from './TaskEditor';
 import { useTaskStore } from '@/store/taskStore';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
+import { SearchBar } from './SearchBar'; // Import SearchBar
+import { RainEffect } from './RainEffect'; // Import RainEffect
+import { ThemeSwitcher } from './ThemeSwitcher';
 
 export function TaskLayout() {
   const { moveTask } = useTaskStore();
@@ -33,15 +36,28 @@ export function TaskLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <header className="p-4 border-b bg-card text-card-foreground">
-        <h1 className="text-2xl font-bold">To-Do Web App 1.0</h1>
-        <p className="text-sm text-muted-foreground">Hiyerarşik görev yönetimi uygulaması</p>
+      <header className="p-5 border-b bg-card text-card-foreground relative overflow-hidden">
+        <div className="flex justify-between items-start relative z-10">
+          <div>
+            <h1 className="text-4xl font-bold plantrix-title w-fit">PLANTRİX</h1>
+            <p className="text-sm text-muted-foreground mt-1">hiç sıradan değil</p>
+          </div>
+          <ThemeSwitcher />
+        </div>
+        <RainEffect />
       </header>
       <div className="flex flex-1 overflow-hidden">
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <div className="w-1/3 border-r overflow-y-auto p-4 bg-card">
-            <h2 className="text-lg font-semibold mb-4 text-card-foreground">Görev Listesi</h2>
-            <TaskTreeView />
+          <div className="w-1/3 border-r overflow-y-auto p-6 bg-card flex flex-col">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-semibold text-card-foreground">Görev Listesi</h2>
+            </div>
+            <div className="mb-2">
+              <SearchBar />
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <TaskTreeView />
+            </div>
           </div>
           <div className="flex-1 bg-background">
             <TaskEditor />

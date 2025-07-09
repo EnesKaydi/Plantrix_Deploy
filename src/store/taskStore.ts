@@ -5,6 +5,7 @@ import { DragEndEvent } from '@dnd-kit/core';
 interface TaskStore {
   tasks: Task[];
   selectedTaskId: string | null;
+  searchTerm: string; // Add search term
   isLoading: boolean;
   error: string | null;
   taskToDeleteId: string | null;
@@ -20,7 +21,9 @@ interface TaskStore {
   confirmDelete: () => void;
   cancelDelete: () => void;
   toggleTaskCompletion: (id: string) => void;
+  toggleTaskImportant: (id: string) => void; // Add toggle important
   setSelectedTask: (id: string | null) => void;
+  setSearchTerm: (term: string) => void; // Add set search term
   moveTask: (event: DragEndEvent) => void;
   getTaskTree: () => TaskTreeNode[];
   getSelectedTask: () => Task | null;
@@ -30,20 +33,53 @@ interface TaskStore {
 }
 
 // Utility function to build tree structure
-const buildTaskTree = (tasks: Task[]): TaskTreeNode[] => {
+const buildTaskTree = (tasks: Task[], searchTerm: string = ''): TaskTreeNode[] => {
   const taskMap = new Map<string, TaskTreeNode>();
   const rootTasks: TaskTreeNode[] = [];
 
-  // Create a map of all tasks
-  tasks.forEach(task => {
-    taskMap.set(task.id, { ...task, children: [] });
+  const lowercasedSearchTerm = searchTerm.toLowerCase();
+
+  // Filter tasks if search term is provided
+  const filteredTasks = searchTerm
+    ? tasks.filter(task => task.title.toLowerCase().includes(lowercasedSearchTerm))
+    : tasks;
+
+  const visibleTaskIds = new Set<string>();
+  if (searchTerm) {
+    const taskAndParents = new Set<string>();
+    filteredTasks.forEach(task => {
+      taskAndParents.add(task.id);
+      let parentId = task.parentId;
+      while(parentId) {
+        const parent = tasks.find(t => t.id === parentId);
+        if (parent) {
+          taskAndParents.add(parent.id);
+          parentId = parent.parentId;
+        } else {
+          parentId = null;
+        }
+      }
+    });
+    tasks.forEach(task => {
+        if(taskAndParents.has(task.id)) {
+            visibleTaskIds.add(task.id);
+        }
+    });
+  }
+
+
+  // Create a map of all tasks (or visible tasks if searching)
+  const tasksToProcess = searchTerm ? tasks.filter(t => visibleTaskIds.has(t.id)) : tasks;
+  
+  tasksToProcess.forEach(task => {
+    taskMap.set(task.id, { ...task, children: [], isExpanded: searchTerm ? true : undefined });
   });
 
   // Build the tree structure
-  tasks.forEach(task => {
+  tasksToProcess.forEach(task => {
     const taskNode = taskMap.get(task.id)!;
     
-    if (!task.parentId) {
+    if (!task.parentId || !taskMap.has(task.parentId)) {
       rootTasks.push(taskNode);
     } else {
       const parent = taskMap.get(task.parentId);
@@ -82,6 +118,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       level: 1,
       orderIndex: 0,
       isCompleted: false,
+      isImportant: false,
       parentId: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -97,6 +134,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       level: 2,
       orderIndex: 0,
       isCompleted: false,
+      isImportant: false,
       parentId: '1',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -112,6 +150,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       level: 3,
       orderIndex: 0,
       isCompleted: false,
+      isImportant: true,
       parentId: '2',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -127,6 +166,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       level: 2,
       orderIndex: 1,
       isCompleted: true,
+      isImportant: false,
       parentId: '1',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -134,6 +174,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     },
   ],
   selectedTaskId: '1', // Select the first task by default
+  searchTerm: '',
   isLoading: false,
   error: null,
   taskToDeleteId: null,
@@ -149,6 +190,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       content: '',
       description: '',
       isCompleted: false,
+      isImportant: false,
       imageUrls: [],
       emoji: '📄',
       createdAt: new Date().toISOString(),
@@ -247,11 +289,23 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }));
   },
 
+  toggleTaskImportant: (id) => {
+    set(state => ({
+      tasks: state.tasks.map(task =>
+        task.id === id
+          ? { ...task, isImportant: !task.isImportant, updatedAt: new Date().toISOString() }
+          : task
+      ),
+    }));
+  },
+
   setSelectedTask: (id) => {
     if (get().tasks.find(t => t.id === id)) {
       set({ selectedTaskId: id });
     }
   },
+
+  setSearchTerm: (term: string) => set({ searchTerm: term }),
 
   moveTask: (event: DragEndEvent) => {
     const { active, over } = event;
@@ -328,7 +382,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     });
   },
 
-  getTaskTree: () => buildTaskTree(get().tasks),
+  getTaskTree: () => buildTaskTree(get().tasks, get().searchTerm),
 
   getSelectedTask: () => {
     const state = get();

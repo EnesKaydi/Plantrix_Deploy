@@ -273,17 +273,17 @@ export function TaskEditor() {
         
         {/* Image Gallery */}
         {selectedTask.imageUrls && selectedTask.imageUrls.length > 0 && (
-          <div className="mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-start">
             {selectedTask.imageUrls.map((url, index) => (
-              <div key={index} className="relative group">
+              <div key={index} className="relative group resizable-image-container w-[200px] h-[150px]">
                 <img
                   src={url}
                   alt={`Uploaded content ${index + 1}`}
-                  className="rounded-lg object-cover w-full h-32 border-2 border-border"
+                  className="rounded-lg"
                 />
                 <button
                   onClick={() => handleRemoveImage(url)}
-                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                   aria-label="Remove image"
                 >
                   <X className="h-4 w-4" />

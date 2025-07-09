@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import * as ContextMenu from '@radix-ui/react-context-menu';
-import { ChevronRight, ChevronDown, CheckSquare, Trash2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, CheckSquare, Trash2, Star } from 'lucide-react'; // Import Star
 import { TaskTreeNode } from '@/types/task';
 import { useTaskStore } from '@/store/taskStore';
 import { cn, getLevelIndentation, getLevelPrefix } from '@/lib/utils';
@@ -13,10 +13,24 @@ interface TaskNodeProps {
 }
 
 export function TaskNode({ task }: TaskNodeProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpandedState, setIsExpandedState] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
-  const { selectedTaskId, setSelectedTask, toggleTaskCompletion, requestDelete } = useTaskStore();
+  const { 
+    selectedTaskId, 
+    setSelectedTask, 
+    toggleTaskCompletion, 
+    toggleTaskImportant, // Get toggle function
+    requestDelete 
+  } = useTaskStore();
   
+  // For search, task.isExpanded will be true. Otherwise, use local state.
+  const isExpanded = task.isExpanded ?? isExpandedState;
+  const setIsExpanded = (val: boolean) => {
+    if (task.isExpanded === undefined) {
+      setIsExpandedState(val);
+    }
+  }
+
   const isSelected = selectedTaskId === task.id;
   const hasChildren = task.children && task.children.length > 0;
 
@@ -86,9 +100,10 @@ export function TaskNode({ task }: TaskNodeProps) {
             className={cn(
               'task-node p-3 mb-2 border rounded-lg transition-all duration-200 select-none cursor-pointer',
               'hover:shadow-md hover:border-primary/50',
-              task.isCompleted && 'bg-success-100/30 border-success-300/50 text-muted-foreground line-through',
+              task.isImportant && !task.isCompleted && 'task-important', // Add important class
+              task.isCompleted && 'task-completed', // Use the new class for completed tasks
               isSelected && 'bg-primary/10 border-primary shadow-lg',
-              !task.isCompleted && !isSelected && 'bg-card border-border',
+              !task.isCompleted && !isSelected && !task.isImportant && 'bg-card border-border',
               isDragging && 'dragging opacity-50 scale-95'
             )}
             onClick={handleTaskClick}
@@ -115,7 +130,7 @@ export function TaskNode({ task }: TaskNodeProps) {
                   <span className="font-mono text-xs text-muted-foreground mr-2">{getLevelPrefix(task.level)}</span>
                   <span className={cn(
                     'font-medium truncate',
-                    task.isCompleted ? 'text-muted-foreground' : 'text-card-foreground'
+                    task.isCompleted ? 'text-inherit' : 'text-card-foreground'
                   )}>
                     {task.title}
                   </span>
@@ -140,6 +155,13 @@ export function TaskNode({ task }: TaskNodeProps) {
               >
                 <CheckSquare className="mr-2 h-4 w-4" />
                 <span>{task.isCompleted ? 'Yapılmadı Olarak İşaretle' : 'Tamamlandı Olarak İşaretle'}</span>
+              </ContextMenu.Item>
+              <ContextMenu.Item 
+                className="context-menu-item"
+                onSelect={() => toggleTaskImportant(task.id)}
+              >
+                <Star className={cn("mr-2 h-4 w-4", task.isImportant && "fill-current text-amber-500")} />
+                <span>{task.isImportant ? 'Önemli Değil' : 'Önemli Olarak İşaretle'}</span>
               </ContextMenu.Item>
               <ContextMenu.Separator className="h-px bg-border my-1" />
               <ContextMenu.Item 

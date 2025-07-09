@@ -31,52 +31,61 @@
     --input: 210 40% 90%;
     --ring: 211 82% 38%;
     --radius: 0.5rem;
+    --success: 140 65% 45%;
+    --success-foreground: 140 65% 95%;
+    --success-border: 140 65% 80%;
   }
 
   /* Sunset Theme */
   .theme-sunset {
-    --background: 25 100% 96%;
-    --foreground: 15 30% 20%;
-    --card: 25 100% 98%;
-    --card-foreground: 15 30% 20%;
-    --popover: 25 100% 98%;
-    --popover-foreground: 15 30% 20%;
-    --primary: 16 100% 63%;
-    --primary-foreground: 20 60% 98%;
-    --secondary: 20 60% 95%;
-    --secondary-foreground: 16 100% 63%;
-    --muted: 20 60% 95%;
-    --muted-foreground: 15 25% 55%;
-    --accent: 288 64% 40%;
-    --accent-foreground: 288 64% 95%;
+    --background: 30 100% 97%; /* Softer background */
+    --foreground: 20 30% 25%;
+    --card: 30 100% 99%;
+    --card-foreground: 20 30% 25%;
+    --popover: 30 100% 99%;
+    --popover-foreground: 20 30% 25%;
+    --primary: 25 95% 55%; /* Deeper orange */
+    --primary-foreground: 25 95% 98%;
+    --secondary: 30 80% 95%;
+    --secondary-foreground: 25 95% 55%;
+    --muted: 30 80% 95%;
+    --muted-foreground: 20 25% 55%;
+    --accent: 300 70% 50%; /* Vibrant purple */
+    --accent-foreground: 300 70% 95%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 20 60% 90%;
-    --input: 20 60% 92%;
-    --ring: 16 100% 63%;
+    --border: 30 80% 90%;
+    --input: 30 80% 92%;
+    --ring: 25 95% 55%;
+    --success: 110 55% 50%;
+    --success-foreground: 110 55% 15%;
+    --success-border: 110 55% 85%;
   }
 
   /* Forest Green Theme */
   .theme-forest {
-    --background: 88 56% 95%;
-    --foreground: 122 30% 15%;
-    --card: 88 56% 98%;
-    --card-foreground: 122 30% 15%;
-    --popover: 88 56% 98%;
-    --popover-foreground: 122 30% 15%;
-    --primary: 122 48% 34%;
-    --primary-foreground: 90 60% 98%;
-    --secondary: 90 40% 90%;
-    --secondary-foreground: 122 48% 34%;
-    --muted: 90 40% 90%;
-    --muted-foreground: 122 25% 45%;
-    --accent: 45 100% 51%;
-    --accent-foreground: 45 100% 15%;
+    --background: 90 60% 96%; /* Lighter bg */
+    --foreground: 120 30% 20%;
+    --card: 90 60% 99%;
+    --card-foreground: 120 30% 20%;
+    --popover: 90 60% 99%;
+    --popover-foreground: 120 30% 20%;
+    --primary: 130 45% 40%; /* Softer, richer green */
+    --primary-foreground: 130 45% 95%;
+    --secondary: 90 50% 93%;
+    --secondary-foreground: 130 45% 40%;
+    --muted: 90 50% 93%;
+    --muted-foreground: 120 25% 50%;
+    --accent: 180 85% 40%; /* Teal accent */
+    --accent-foreground: 180 85% 95%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 90 30% 85%;
-    --input: 90 30% 88%;
-    --ring: 122 48% 34%;
+    --border: 90 50% 90%;
+    --input: 90 50% 92%;
+    --ring: 130 45% 40%;
+    --success: 140 60% 45%;
+    --success-foreground: 140 60% 95%;
+    --success-border: 140 60% 80%;
   }
 }
  
@@ -127,8 +136,15 @@
     @apply rounded-lg border transition-all duration-200 cursor-pointer;
   }
   
-  .task-node.completed {
-    @apply bg-success-50 border-success-300 text-success-700;
+  .task-completed {
+    background-color: hsl(var(--success) / 0.15);
+    border-color: hsl(var(--success) / 0.4);
+    color: hsl(var(--success));
+    @apply line-through text-muted-foreground;
+  }
+  .task-completed:hover {
+    background-color: hsl(var(--success) / 0.25);
+    border-color: hsl(var(--success) / 0.6);
   }
   
   .task-node.selected {
@@ -147,7 +163,24 @@
   .drop-zone {
     @apply border-2 border-dashed border-primary-300 bg-primary-50;
   }
+
+  .task-important {
+    @apply border-orange-400/80 bg-orange-400/20 text-orange-600;
+  }
+  .task-important:hover {
+    @apply border-orange-500 bg-orange-500/30 shadow-md;
+  }
   
+  .resizable-image-container {
+    @apply relative resize overflow-auto p-1 border border-dashed border-transparent hover:border-border;
+    min-width: 100px; /* Minimum size */
+    min-height: 100px; /* Minimum size */
+  }
+
+  .resizable-image-container img {
+    @apply w-full h-full object-contain; /* Make image fill the container */
+  }
+
   /* Editor Styles */
   .editor-container {
     @apply h-full flex flex-col;
@@ -186,12 +219,17 @@
   }
   
   .context-menu-item {
-    @apply px-3 py-2 text-sm cursor-pointer transition-colors;
-    @apply hover:bg-gray-100 text-gray-700;
+    @apply flex items-center select-none rounded-sm px-2 py-1.5 text-sm outline-none transition-colors;
+    @apply focus:bg-accent focus:text-accent-foreground;
+    @apply data-[disabled]:pointer-events-none data-[disabled]:opacity-50;
+  }
+
+  .context-menu-item.destructive {
+    @apply text-destructive focus:bg-destructive/10 focus:text-destructive;
   }
   
   .context-menu-separator {
-    @apply h-px bg-gray-200 my-1;
+    @apply h-px bg-border my-1;
   }
   
   /* Animation Classes */
@@ -262,5 +300,47 @@
 
   .task-node.dragging {
     @apply shadow-xl border-primary-400;
+  }
+
+  /* Animated title for PLANTRİX */
+  .plantrix-title {
+    @apply cursor-pointer transition-all duration-300;
+    color: transparent;
+    background-image: linear-gradient(to right, #f87171, #fb923c, #facc15, #4ade80, #60a5fa, #f87171);
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: text-gradient-animation 3s ease-in-out infinite;
+  }
+
+  .plantrix-title:hover {
+    transform: scale(1.05); /* Add a subtle scale effect on hover */
+  }
+
+  @keyframes text-gradient-animation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Rain Effect - Final Attempt */
+  .raindrop {
+    position: absolute;
+    top: 0;
+    width: 1px;
+    height: 70px;
+    background: hsl(var(--primary));
+    opacity: 0.3;
+    animation: rain-fall-final 1.2s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes rain-fall-final {
+    from {
+      transform: translateY(-100px);
+    }
+    to {
+      transform: translateY(150px);
+    }
   }
 } 
