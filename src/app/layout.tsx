@@ -11,6 +11,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'PLANTRİX - Hiç Sıradan Değil', // Updated title
   description: 'Hiyerarşik görev yönetimi uygulaması',
+  icons: {
+    icon: '/PlantrixFavIcon.png',
+  },
 }
 
 export default function RootLayout({

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
 import { CreateTaskInput } from '@/types/task';
+import DOMPurify from 'isomorphic-dompurify';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -36,11 +37,17 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json() as CreateTaskInput;
-    const { title, parentId, level, orderIndex } = body;
+    const { title, parentId, level, orderIndex, content, description } = body;
+
+    const sanitizedTitle = DOMPurify.sanitize(title);
+    const sanitizedContent = content ? DOMPurify.sanitize(content) : undefined;
+    const sanitizedDescription = description ? DOMPurify.sanitize(description) : undefined;
 
     const newTask = await prisma.task.create({
       data: {
-        title,
+        title: sanitizedTitle,
+        content: sanitizedContent,
+        description: sanitizedDescription,
         parentId,
         level,
         orderIndex,

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
 import { UpdateTaskInput } from '@/types/task';
+import DOMPurify from 'isomorphic-dompurify';
 
 // Helper function to check task ownership
 async function checkTaskOwnership(taskId: string, userId: string) {
@@ -30,13 +31,25 @@ export async function PATCH(
 
   try {
     const body = await req.json() as UpdateTaskInput;
+    const { title, content, description, ...rest } = body;
+
+    const sanitizedData: Partial<UpdateTaskInput> = { ...rest };
+
+    if (title) {
+      sanitizedData.title = DOMPurify.sanitize(title);
+    }
+    if (content) {
+      sanitizedData.content = DOMPurify.sanitize(content);
+    }
+    if (description) {
+      sanitizedData.description = DOMPurify.sanitize(description);
+    }
+
     const updatedTask = await prisma.task.update({
       where: {
         id: params.taskId,
       },
-      data: {
-        ...body,
-      },
+      data: sanitizedData,
     });
     return NextResponse.json(updatedTask);
   } catch (error) {
