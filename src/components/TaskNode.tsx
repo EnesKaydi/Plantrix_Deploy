@@ -18,9 +18,8 @@ export function TaskNode({ task }: TaskNodeProps) {
   const { 
     selectedTaskId, 
     setSelectedTask, 
-    toggleTaskCompletion, 
-    toggleTaskImportant, // Get toggle function
-    requestDelete 
+    toggleTaskCompletion,
+    deleteTask 
   } = useTaskStore();
   
   // For search, task.isExpanded will be true. Otherwise, use local state.
@@ -58,24 +57,6 @@ export function TaskNode({ task }: TaskNodeProps) {
 
   const handleTaskClick = () => {
     setSelectedTask(task.id);
-  };
-
-  const handleToggleCompletion = (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    toggleTaskCompletion(task.id);
-  };
-
-  const handleDeleteTask = (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (confirm(`"${task.title}" görevini ve tüm alt görevlerini silmek istediğinizden emin misiniz?`)) {
-      requestDelete(task.id);
-    }
   };
 
   const handleToggleExpand = (e: React.MouseEvent) => {
@@ -156,17 +137,22 @@ export function TaskNode({ task }: TaskNodeProps) {
                 <CheckSquare className="mr-2 h-4 w-4" />
                 <span>{task.isCompleted ? 'Yapılmadı Olarak İşaretle' : 'Tamamlandı Olarak İşaretle'}</span>
               </ContextMenu.Item>
-              <ContextMenu.Item 
+              {/* Temporarily removing the "Important" feature to fix build */}
+              {/* <ContextMenu.Item 
                 className="context-menu-item"
                 onSelect={() => toggleTaskImportant(task.id)}
               >
                 <Star className={cn("mr-2 h-4 w-4", task.isImportant && "fill-current text-amber-500")} />
                 <span>{task.isImportant ? 'Önemli Değil' : 'Önemli Olarak İşaretle'}</span>
-              </ContextMenu.Item>
+              </ContextMenu.Item> */}
               <ContextMenu.Separator className="h-px bg-border my-1" />
               <ContextMenu.Item 
                 className="context-menu-item destructive"
-                onSelect={() => requestDelete(task.id)}
+                onSelect={() => {
+                  if (window.confirm(`"${task.title}" görevini ve tüm alt görevlerini silmek istediğinizden emin misiniz?`)) {
+                    deleteTask(task.id);
+                  }
+                }}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Sil
