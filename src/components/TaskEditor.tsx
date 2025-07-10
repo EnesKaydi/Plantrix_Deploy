@@ -1,15 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, RefObject } from 'react';
 import { useTaskStore } from '@/store/taskStore';
 import { debounce } from 'lodash';
 import { FileText, Trash2, Printer, ImageUp, X, Plus, Check, FilePlus2, GitFork } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import * as Popover from '@radix-ui/react-popover';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
+import { ConfirmDeleteDialogRef } from './ConfirmDeleteDialog';
 
+interface TaskEditorProps {
+  deleteDialogRef: RefObject<ConfirmDeleteDialogRef>;
+}
 
-export function TaskEditor() {
+export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
   const {
     tasks,
     getSelectedTask,
@@ -123,7 +127,7 @@ export function TaskEditor() {
 
   const handleDelete = () => {
     if (selectedTask) {
-      deleteTask(selectedTask.id);
+      deleteDialogRef.current?.requestDelete(selectedTask.id);
     }
   };
 

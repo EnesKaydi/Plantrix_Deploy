@@ -20,10 +20,13 @@ import { signOut, useSession } from 'next-auth/react';
 import { LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { LoadingSpinner } from './ui/LoadingSpinner';
+import { useRef } from 'react';
+import { ConfirmDeleteDialogRef } from './ConfirmDeleteDialog';
 
 export function TaskLayout() {
   const { fetchTasks, moveTask, isLoading } = useTaskStore();
   const { data: session } = useSession();
+  const deleteDialogRef = useRef<ConfirmDeleteDialogRef>(null);
 
   useEffect(() => {
     fetchTasks();
@@ -76,10 +79,10 @@ export function TaskLayout() {
             </div>
           </div>
           <div className="flex-1 bg-background">
-            <TaskEditor />
+            <TaskEditor deleteDialogRef={deleteDialogRef} />
           </div>
         </DndContext>
-        <ConfirmDeleteDialog />
+        <ConfirmDeleteDialog ref={deleteDialogRef} />
       </div>
     </div>
   );
