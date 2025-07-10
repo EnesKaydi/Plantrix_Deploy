@@ -52,7 +52,10 @@ export async function PATCH(
     });
     return NextResponse.json(updatedTask);
   } catch (error) {
-    console.error(`[TASK_PATCH: ${params.taskId}]`, error);
+    // Log error in production-safe way
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[TASK_PATCH: ${params.taskId}]`, error);
+    }
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
@@ -82,7 +85,10 @@ export async function DELETE(
     });
     return new NextResponse(null, { status: 204 }); // No Content
   } catch (error) {
-    console.error(`[TASK_DELETE: ${params.taskId}]`, error);
+    // Log error in production-safe way
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[TASK_DELETE: ${params.taskId}]`, error);
+    }
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 } 

@@ -23,7 +23,10 @@ export async function GET() {
     });
     return NextResponse.json(tasks);
   } catch (error) {
-    console.error('[TASKS_GET]', error);
+    // Log error in production-safe way
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[TASKS_GET]', error);
+    }
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
@@ -57,7 +60,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json(newTask);
   } catch (error) {
-    console.error('[TASKS_POST]', error);
+    // Log error in production-safe way
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[TASKS_POST]', error);
+    }
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 } 

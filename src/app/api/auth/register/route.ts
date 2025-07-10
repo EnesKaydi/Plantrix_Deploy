@@ -45,7 +45,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json(userWithoutPassword);
   } catch (error) {
-    console.error('[REGISTER_POST]', error);
+    // Log error in production-safe way
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[REGISTER_POST]', error);
+    }
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 } 

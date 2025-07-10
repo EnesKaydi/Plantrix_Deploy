@@ -100,22 +100,14 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       const response = await axios.get<Task[]>('/api/tasks');
       set({ tasks: response.data, isLoading: false, selectedTaskId: response.data[0]?.id || null });
-    } catch (error: any) {
-      console.error('Failed to fetch tasks. Full error:', error);
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.error('Error data:', error.response.data);
-        console.error('Error status:', error.response.status);
-        console.error('Error headers:', error.response.headers);
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.error('Error request:', error.request);
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.error('Error message:', error.message);
+    } catch (error: unknown) {
+      let errorMessage = 'Görevler yüklenemedi.';
+      
+      if (axios.isAxiosError(error)) {
+        errorMessage = error.response?.data?.message || error.message || errorMessage;
       }
-      set({ error: 'Görevler yüklenemedi. Konsolu kontrol edin.', isLoading: false });
+      
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -127,9 +119,9 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         tasks: [...state.tasks, newTask],
         selectedTaskId: newTask.id,
       }));
-    } catch (error) {
-      console.error('Failed to add task', error);
-      // Here you could show an error to the user
+    } catch (error: unknown) {
+      // Error handling - could be improved with toast notifications
+      set(state => ({ ...state, error: 'Görev eklenemedi.' }));
     }
   },
 
@@ -143,8 +135,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }));
     try {
       await axios.patch(`/api/tasks/${input.id}`, input);
-    } catch (error) {
-      console.error('Failed to update task', error);
+    } catch (error: unknown) {
       set({ tasks: originalTasks }); // Revert on error
     }
   },
@@ -170,16 +161,12 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     
     // Handle selection change
     if (get().selectedTaskId && tasksToDelete.has(get().selectedTaskId!)) {
-        set({ selectedTaskId: null }); // Or select parent/sibling
+        set({ selectedTaskId: null });
     }
 
     try {
-        // We might need a specific backend endpoint to handle cascading deletes
-        // For now, we assume the frontend logic is sufficient and just delete the main task.
       await axios.delete(`/api/tasks/${id}`);
-       // If the backend doesn't handle cascades, we might need to send all IDs to delete.
-    } catch (error) {
-      console.error('Failed to delete task', error);
+    } catch (error: unknown) {
       set({ tasks: originalTasks }); // Revert on error
     }
   },
@@ -211,11 +198,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       return;
     }
 
-    // --- Start optimistic update logic ---
+    // Optimistic update logic (existing logic remains the same)
     const oldParentId = draggedTask.parentId;
-    
-    // Logic to determine new parent, level, and order
-    // This is a simplified version. A real implementation might need more checks.
     const newParentId = dropTargetTask.parentId;
     const newLevel = dropTargetTask.level;
 
@@ -228,7 +212,6 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     const tasksInNewParent = tasks.filter(t => t.parentId === newParentId);
     let newOrderIndex = tasksInNewParent.findIndex(t => t.id === dropTargetTask.id);
     
-    // For simplicity, let's place it after the drop target
     if (newOrderIndex < 0) newOrderIndex = 0;
     else newOrderIndex += 1;
     
@@ -239,7 +222,6 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     tasksInNewParent.splice(newOrderIndex, 0, draggedTask);
     tasksInNewParent.forEach((t, i) => t.orderIndex = i);
 
-    // Create a new tasks array with updated values
     const updatedTasks = tasks.map(t => {
       const updatedInOld = tasksInOldParent.find(uto => uto.id === t.id);
       if(updatedInOld) return updatedInOld;
@@ -251,7 +233,6 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     });
 
     set({ tasks: updatedTasks });
-    // --- End optimistic update ---
 
     try {
       await axios.post('/api/tasks/move', {
@@ -260,11 +241,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         newOrderIndex,
         newLevel,
       });
-      // On success, we can re-fetch or trust the optimistic update.
-      // For now, we trust. A re-fetch would be safer.
-      // get().fetchTasks(); 
-    } catch (error) {
-      console.error('Failed to move task', error);
+    } catch (error: unknown) {
       set({ tasks: originalTasks }); // Revert on error
     }
   },

@@ -77,8 +77,12 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ message: 'Task moved successfully' }, { status: 200 });
-  } catch (error: any) {
-    console.error('[TASKS_MOVE_POST]', error);
-    return new NextResponse(error.message || 'Internal Server Error', { status: 500 });
+  } catch (error: unknown) {
+    // Log error in production-safe way
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[TASKS_MOVE_POST]', error);
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+    return new NextResponse(errorMessage, { status: 500 });
   }
 } 

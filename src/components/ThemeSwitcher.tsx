@@ -8,7 +8,7 @@ const themes = [
   { name: 'theme-ocean', label: 'Okyanus', color: 'bg-blue-500' },
   { name: 'theme-sunset', label: 'Gün Batımı', color: 'bg-orange-500' },
   { name: 'theme-forest', label: 'Orman', color: 'bg-green-600' },
-];
+] as const;
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useThemeStore();
@@ -20,7 +20,7 @@ export function ThemeSwitcher() {
           key={t.name}
           variant="ghost"
           size="sm"
-          onClick={() => setTheme(t.name as any)}
+          onClick={() => setTheme(t.name)}
           className={cn(
             "flex items-center gap-2 transition-all",
             theme === t.name

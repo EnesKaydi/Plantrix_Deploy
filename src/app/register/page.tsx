@@ -35,9 +35,12 @@ export default function RegisterPage() {
         password,
       });
       router.push('/login'); // Kayıt başarılıysa login sayfasına yönlendir
-    } catch (err: any) {
-      setError(err.response?.data || 'Kayıt sırasında bir hata oluştu.');
-      console.error(err);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data || 'Kayıt sırasında bir hata oluştu.');
+      } else {
+        setError('Kayıt sırasında bir hata oluştu.');
+      }
     } finally {
       setIsLoading(false);
     }
