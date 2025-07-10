@@ -10,23 +10,21 @@ async function checkTaskOwnership(taskId: string, userId: string) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
   });
-  if (!task || task.userId !== userId) {
-    return false;
-  }
-  return true;
+  // Simplified return statement
+  return !!(task && task.userId === userId);
 }
 
-export async function PATCH(
-  req: Request,
-  context: { params: { taskId: string } }
-) {
-  const { taskId } = context.params;
+interface RouteParams {
+  params: { taskId: string };
+}
+
+export async function PATCH(req: Request, { params }: RouteParams) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new NextResponse('Unauthenticated', { status: 401 });
   }
 
-  if (!await checkTaskOwnership(taskId, session.user.id)) {
+  if (!await checkTaskOwnership(params.taskId, session.user.id)) {
     return new NextResponse('Unauthorized', { status: 403 });
   }
 
@@ -48,28 +46,24 @@ export async function PATCH(
 
     const updatedTask = await prisma.task.update({
       where: {
-        id: taskId,
+        id: params.taskId,
       },
       data: sanitizedData,
     });
     return NextResponse.json(updatedTask);
   } catch (error) {
-    console.error(`[TASK_PATCH: ${taskId}]`, error);
+    console.error(`[TASK_PATCH: ${params.taskId}]`, error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
-export async function DELETE(
-  req: Request,
-  context: { params: { taskId: string } }
-) {
-  const { taskId } = context.params;
+export async function DELETE(req: Request, { params }: RouteParams) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new NextResponse('Unauthenticated', { status: 401 });
   }
 
-  if (!await checkTaskOwnership(taskId, session.user.id)) {
+  if (!await checkTaskOwnership(params.taskId, session.user.id)) {
     return new NextResponse('Unauthorized', { status: 403 });
   }
 
@@ -79,12 +73,12 @@ export async function DELETE(
     // A recursive delete logic might be needed here if children should also be deleted.
     await prisma.task.delete({
       where: {
-        id: taskId,
+        id: params.taskId,
       },
     });
     return new NextResponse(null, { status: 204 }); // No Content
   } catch (error) {
-    console.error(`[TASK_DELETE: ${taskId}]`, error);
+    console.error(`[TASK_DELETE: ${params.taskId}]`, error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 } 
