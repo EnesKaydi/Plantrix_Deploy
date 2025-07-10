@@ -7,20 +7,39 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/store/authStore';
 import { RainEffect } from '@/components/RainEffect';
+import { signIn } from 'next-auth/react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, quickLogin } = useAuthStore();
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { quickLogin } = useAuthStore();
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = login(email, password);
-    if (result.success) {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      });
+
+      if (result?.error) {
+        setError('Giriş bilgileri hatalı veya kullanıcı bulunamadı.');
+        setIsLoading(false);
+        return;
+      }
+
       router.push('/');
-    } else {
-      alert(result.message);
+      router.refresh(); // Sunucu tarafındaki veriyi yenilemek için
+    } catch (err) {
+      setError('Giriş sırasında beklenmedik bir hata oluştu.');
+      setIsLoading(false);
     }
   };
 
@@ -54,6 +73,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -69,10 +89,12 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full">
-              Giriş Yap
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </Button>
           </form>
           <div className="relative">

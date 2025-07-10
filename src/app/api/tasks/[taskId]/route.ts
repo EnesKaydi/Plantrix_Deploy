@@ -1,0 +1,75 @@
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import prisma from '@/lib/prisma';
+import { UpdateTaskInput } from '@/types/task';
+
+// Helper function to check task ownership
+async function checkTaskOwnership(taskId: string, userId: string) {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+  });
+  if (!task || task.userId !== userId) {
+    return false;
+  }
+  return true;
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: { taskId: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return new NextResponse('Unauthenticated', { status: 401 });
+  }
+
+  if (!await checkTaskOwnership(params.taskId, session.user.id)) {
+    return new NextResponse('Unauthorized', { status: 403 });
+  }
+
+  try {
+    const body = await req.json() as UpdateTaskInput;
+    const updatedTask = await prisma.task.update({
+      where: {
+        id: params.taskId,
+      },
+      data: {
+        ...body,
+      },
+    });
+    return NextResponse.json(updatedTask);
+  } catch (error) {
+    console.error(`[TASK_PATCH: ${params.taskId}]`, error);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: { taskId: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return new NextResponse('Unauthenticated', { status: 401 });
+  }
+
+  if (!await checkTaskOwnership(params.taskId, session.user.id)) {
+    return new NextResponse('Unauthorized', { status: 403 });
+  }
+
+  try {
+    // Note: Deleting a parent task might require cascading deletes for children.
+    // The current schema uses `onDelete: NoAction` for self-relations.
+    // A recursive delete logic might be needed here if children should also be deleted.
+    await prisma.task.delete({
+      where: {
+        id: params.taskId,
+      },
+    });
+    return new NextResponse(null, { status: 204 }); // No Content
+  } catch (error) {
+    console.error(`[TASK_DELETE: ${params.taskId}]`, error);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+} 

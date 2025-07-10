@@ -166,18 +166,6 @@ export function TaskEditor() {
     }
   };
 
-  if (!selectedTask) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground bg-background">
-        <div className="text-center">
-          <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-          <h3 className="text-lg font-medium mb-2">Görev Seçilmedi</h3>
-          <p className="text-sm">Görüntülemek için bir görev seçin veya yeni bir tane oluşturun.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex flex-col bg-background text-foreground relative">
       {/* Toolbar */}
@@ -212,7 +200,7 @@ export function TaskEditor() {
         <Popover.Root>
           <Popover.Trigger asChild>
             <Button variant="ghost" size="default" disabled={!selectedTask}>
-              <span className="text-lg mr-2">{selectedTask.emoji || '🙂'}</span>
+              <span className="text-lg mr-2">{selectedTask?.emoji || '🙂'}</span>
               Emoji
             </Button>
           </Popover.Trigger>
@@ -220,97 +208,82 @@ export function TaskEditor() {
             <Popover.Content sideOffset={5} className="z-50">
               <EmojiPicker
                 onEmojiClick={(emojiObject) => {
-                  updateTask({ id: selectedTask.id, emoji: emojiObject.emoji });
+                  if (selectedTask) {
+                    updateTask({ id: selectedTask.id, emoji: emojiObject.emoji });
+                  }
                 }}
                 emojiStyle={EmojiStyle.NATIVE}
               />
             </Popover.Content>
           </Popover.Portal>
         </Popover.Root>
-        <Button asChild variant="outline" className="h-32">
-          <label className="flex flex-col items-center justify-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
-            <ImageUp className="h-6 w-6" />
+        <Button asChild variant="outline" className="h-10" disabled={!selectedTask}>
+          <label className={`flex items-center justify-center gap-2 px-4 cursor-pointer text-muted-foreground transition-colors ${!selectedTask ? 'cursor-not-allowed opacity-50' : 'hover:text-foreground'}`}>
+            <ImageUp className="h-4 w-4" />
             <span>Resim Ekle</span>
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={!selectedTask} />
           </label>
         </Button>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 flex flex-col overflow-y-auto p-6">
-        {/* Header */}
-        <div className="pb-4">
-          {isEditingTitle ? (
+      {selectedTask ? (
+        <div className="flex-1 flex flex-col overflow-y-auto p-6">
+          {/* Header */}
+          <div className="pb-4">
+            {isEditingTitle ? (
+              <input
+                type="text"
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onKeyDown={handleTitleKeyDown}
+                onBlur={handleTitleSave}
+                className="w-full bg-transparent text-3xl font-bold focus:outline-none"
+                autoFocus
+              />
+            ) : (
+              <h1 onDoubleClick={handleTitleEdit} className="text-3xl font-bold cursor-pointer">{titleValue}</h1>
+            )}
             <input
               type="text"
-              value={titleValue}
-              onChange={(e) => setTitleValue(e.target.value)}
-              onKeyDown={handleTitleKeyDown}
-              onBlur={handleTitleSave}
-              className="text-3xl font-bold hover:bg-muted/50 rounded-md px-2 py-1 -m-2 transition-colors cursor-pointer"
-              autoFocus
-            />
-          ) : (
-            <h2 className="text-3xl font-bold hover:bg-muted/50 rounded-md px-2 py-1 -m-2 transition-colors cursor-pointer" onClick={handleTitleEdit}>
-              {selectedTask.title}
-            </h2>
-          )}
-          <p className="text-sm text-muted-foreground mt-2">
-            Seviye {selectedTask.level} • Son Güncelleme: {isMounted ? new Date(selectedTask.updatedAt).toLocaleString('tr-TR') : '...'}
-          </p>
-        </div>
-        
-        {/* Description Input */}
-        <div className="mb-4">
-            <input
-              type="text"
+              placeholder="Kısa açıklama ekle..."
               value={description}
               onChange={handleDescriptionChange}
-              placeholder="Kısa bir açıklama ekle..."
-              className="w-full text-base bg-transparent p-2 -m-2 rounded-md border-none focus:outline-none focus:bg-muted/50 focus:ring-2 focus:ring-primary"
+              className="w-full bg-transparent text-sm text-muted-foreground mt-2 focus:outline-none"
             />
-        </div>
-        
-        {/* Image Gallery */}
-        {selectedTask.imageUrls && selectedTask.imageUrls.length > 0 && (
-          <div className="mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-start">
-            {selectedTask.imageUrls.map((url, index) => (
-              <div key={index} className="relative group resizable-image-container w-[200px] h-[150px]">
-                <img
-                  src={url}
-                  alt={`Uploaded content ${index + 1}`}
-                  className="rounded-lg"
-                />
-                <button
-                  onClick={() => handleRemoveImage(url)}
-                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                  aria-label="Remove image"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            <Button asChild variant="outline" className="h-32">
-              <label className="flex flex-col items-center justify-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
-                <ImageUp className="h-6 w-6" />
-                <span>Resim Ekle</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-              </label>
-            </Button>
           </div>
-        )}
-        
-        {/* Main Content Editor */}
-        <div className="flex-1">
+
+          {/* Image Gallery */}
+          {(selectedTask.imageUrls && selectedTask.imageUrls.length > 0) && (
+            <div className="mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {selectedTask.imageUrls.map((url, index) => (
+                <div key={index} className="relative group">
+                  <img src={url} alt={`task-image-${index}`} className="rounded-lg object-cover w-full h-32" />
+                  <button onClick={() => handleRemoveImage(url)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Text Area */}
           <textarea
             value={content}
             onChange={handleContentChange}
-            placeholder="İçerik eklemek için buraya yazın..."
-            className="w-full h-full resize-none border-none outline-none bg-transparent text-foreground placeholder-muted-foreground"
-            style={{ minHeight: '300px' }}
+            placeholder="İçeriğinizi buraya yazın..."
+            className="flex-1 w-full bg-transparent resize-none focus:outline-none text-base"
           />
         </div>
-      </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground bg-background">
+          <div className="text-center">
+            <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+            <h3 className="text-lg font-medium mb-2">Görev Seçilmedi</h3>
+            <p className="text-sm">Görüntülemek için bir görev seçin veya soldaki listeden yeni bir tane oluşturun.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

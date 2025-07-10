@@ -2,26 +2,24 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
+import { useSession } from 'next-auth/react';
 import { TaskLayout } from '@/components/TaskLayout';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'; // Assuming you have a spinner
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuthStore();
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    // If not authenticated, redirect to the login page.
-    if (!isAuthenticated) {
+    if (status === 'unauthenticated') {
       router.replace('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [status, router]);
 
-  // If authenticated, show the main application layout.
-  // Otherwise, show a loading/blank screen while redirecting.
-  if (!isAuthenticated) {
+  if (status === 'loading' || status === 'unauthenticated') {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-background">
-        {/* Optional: Add a loading spinner here */}
+        <LoadingSpinner />
       </div>
     );
   }

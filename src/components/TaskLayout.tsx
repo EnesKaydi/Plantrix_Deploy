@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { 
   DndContext, 
   DragEndEvent,
@@ -12,16 +13,21 @@ import { TaskTreeView } from './TaskTreeView';
 import { TaskEditor } from './TaskEditor';
 import { useTaskStore } from '@/store/taskStore';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
-import { SearchBar } from './SearchBar'; // Import SearchBar
-import { RainEffect } from './RainEffect'; // Import RainEffect
+import { SearchBar } from './SearchBar';
+import { RainEffect } from './RainEffect';
 import { ThemeSwitcher } from './ThemeSwitcher';
-import { useAuthStore } from '@/store/authStore';
+import { signOut, useSession } from 'next-auth/react';
 import { LogOut } from 'lucide-react';
 import { Button } from './ui/button';
+import { LoadingSpinner } from './ui/LoadingSpinner';
 
 export function TaskLayout() {
-  const { moveTask } = useTaskStore();
-  const { user, logout } = useAuthStore();
+  const { fetchTasks, moveTask, isLoading } = useTaskStore();
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -47,9 +53,9 @@ export function TaskLayout() {
             <p className="text-sm text-muted-foreground mt-1">hiç sıradan değil</p>
           </div>
           <div className="flex items-center gap-4">
-            {user && <span className="text-sm welcome-text-animated">Hoş geldin, {user.firstName}!</span>}
+            {session?.user?.name && <span className="text-sm welcome-text-animated">Hoş geldin, {session.user.name}!</span>}
             <ThemeSwitcher />
-            <Button variant="ghost" size="icon" onClick={logout} aria-label="Logout">
+            <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Logout">
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
@@ -66,7 +72,7 @@ export function TaskLayout() {
               <SearchBar />
             </div>
             <div className="flex-1 overflow-y-auto">
-              <TaskTreeView />
+              {isLoading ? <div className="flex justify-center items-center h-full"><LoadingSpinner /></div> : <TaskTreeView />}
             </div>
           </div>
           <div className="flex-1 bg-background">
