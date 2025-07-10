@@ -195,10 +195,78 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   setSearchTerm: (term: string) => set({ searchTerm: term }),
 
   moveTask: async (event: DragEndEvent) => {
-     // This logic needs to be rewritten to make API calls
-     // It's complex and involves reordering and potentially changing parent and level.
-     // For now, we will leave it as a placeholder to be implemented.
-    console.log("moveTask needs to be implemented with API calls", event);
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+    
+    const originalTasks = get().tasks;
+    const tasks = [...originalTasks];
+
+    const draggedTask = tasks.find(t => t.id === active.id);
+    const dropTargetTask = tasks.find(t => t.id === over.id);
+
+    if (!draggedTask || !dropTargetTask) {
+      return;
+    }
+
+    // --- Start optimistic update logic ---
+    const oldParentId = draggedTask.parentId;
+    
+    // Logic to determine new parent, level, and order
+    // This is a simplified version. A real implementation might need more checks.
+    const newParentId = dropTargetTask.parentId;
+    const newLevel = dropTargetTask.level;
+
+    // Remove task from its old position
+    const tasksInOldParent = tasks.filter(t => t.parentId === oldParentId);
+    tasksInOldParent.splice(draggedTask.orderIndex, 1);
+    tasksInOldParent.forEach((t, i) => t.orderIndex = i);
+
+    // Add task to its new position
+    const tasksInNewParent = tasks.filter(t => t.parentId === newParentId);
+    let newOrderIndex = tasksInNewParent.findIndex(t => t.id === dropTargetTask.id);
+    
+    // For simplicity, let's place it after the drop target
+    if (newOrderIndex < 0) newOrderIndex = 0;
+    else newOrderIndex += 1;
+    
+    draggedTask.parentId = newParentId;
+    draggedTask.level = newLevel;
+    draggedTask.orderIndex = newOrderIndex;
+    
+    tasksInNewParent.splice(newOrderIndex, 0, draggedTask);
+    tasksInNewParent.forEach((t, i) => t.orderIndex = i);
+
+    // Create a new tasks array with updated values
+    const updatedTasks = tasks.map(t => {
+      const updatedInOld = tasksInOldParent.find(uto => uto.id === t.id);
+      if(updatedInOld) return updatedInOld;
+      
+      const updatedInNew = tasksInNewParent.find(utn => utn.id === t.id);
+      if(updatedInNew) return updatedInNew;
+      
+      return t;
+    });
+
+    set({ tasks: updatedTasks });
+    // --- End optimistic update ---
+
+    try {
+      await axios.post('/api/tasks/move', {
+        taskId: active.id,
+        newParentId,
+        newOrderIndex,
+        newLevel,
+      });
+      // On success, we can re-fetch or trust the optimistic update.
+      // For now, we trust. A re-fetch would be safer.
+      // get().fetchTasks(); 
+    } catch (error) {
+      console.error('Failed to move task', error);
+      set({ tasks: originalTasks }); // Revert on error
+    }
   },
 
   getTaskTree: () => {
