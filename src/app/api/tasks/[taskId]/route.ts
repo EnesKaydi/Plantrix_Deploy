@@ -18,14 +18,15 @@ async function checkTaskOwnership(taskId: string, userId: string) {
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { taskId: string } }
+  context: { params: { taskId: string } }
 ) {
+  const { taskId } = context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new NextResponse('Unauthenticated', { status: 401 });
   }
 
-  if (!await checkTaskOwnership(params.taskId, session.user.id)) {
+  if (!await checkTaskOwnership(taskId, session.user.id)) {
     return new NextResponse('Unauthorized', { status: 403 });
   }
 
@@ -47,27 +48,28 @@ export async function PATCH(
 
     const updatedTask = await prisma.task.update({
       where: {
-        id: params.taskId,
+        id: taskId,
       },
       data: sanitizedData,
     });
     return NextResponse.json(updatedTask);
   } catch (error) {
-    console.error(`[TASK_PATCH: ${params.taskId}]`, error);
+    console.error(`[TASK_PATCH: ${taskId}]`, error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { taskId: string } }
+  context: { params: { taskId: string } }
 ) {
+  const { taskId } = context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new NextResponse('Unauthenticated', { status: 401 });
   }
 
-  if (!await checkTaskOwnership(params.taskId, session.user.id)) {
+  if (!await checkTaskOwnership(taskId, session.user.id)) {
     return new NextResponse('Unauthorized', { status: 403 });
   }
 
@@ -77,12 +79,12 @@ export async function DELETE(
     // A recursive delete logic might be needed here if children should also be deleted.
     await prisma.task.delete({
       where: {
-        id: params.taskId,
+        id: taskId,
       },
     });
     return new NextResponse(null, { status: 204 }); // No Content
   } catch (error) {
-    console.error(`[TASK_DELETE: ${params.taskId}]`, error);
+    console.error(`[TASK_DELETE: ${taskId}]`, error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 } 
