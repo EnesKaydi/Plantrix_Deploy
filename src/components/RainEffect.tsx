@@ -8,13 +8,13 @@ export function RainEffect() {
   useEffect(() => {
     const createRaindrops = () => {
       const drops = [];
-      const numberOfDrops = 10; // Adjust for more/less rain
+      const numberOfDrops = 100; // Adjust for more/less rain
 
       for (let i = 0; i < numberOfDrops; i++) {
-        const left = Math.random() * 100;
+        const left = Math.random() * 8;
         const duration = 0.5 + Math.random() * 0.5; // 0.5s to 1.0s
-        const delay = Math.random() * 3; // Start at random times
-        const height = 40 + Math.random() * 500; // 40px to 100px
+        const delay = Math.random() * 10; // Start at random times
+        const height = 40 + Math.random() * 60; // 40px to 100px
 
         drops.push(
           <div
