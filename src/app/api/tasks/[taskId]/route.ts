@@ -14,7 +14,11 @@ async function checkTaskOwnership(taskId: string, userId: string) {
   return !!(task && task.userId === userId);
 }
 
-export async function PATCH(req: Request, { params }: { params: { taskId: string } }) {
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<{ taskId: string }> }
+) {
+  const params = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new NextResponse('Unauthenticated', { status: 401 });
@@ -53,7 +57,11 @@ export async function PATCH(req: Request, { params }: { params: { taskId: string
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { taskId: string } }) {
+export async function DELETE(
+  _req: Request,
+  context: { params: Promise<{ taskId: string }> }
+) {
+  const params = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new NextResponse('Unauthenticated', { status: 401 });
