@@ -44,6 +44,12 @@ export async function PATCH(
       sanitizedData.description = DOMPurify.sanitize(description);
     }
 
+    // Prisma's update is strict about `null` vs. `undefined`.
+    // Explicitly handle setting parentId to null.
+    if (body.hasOwnProperty('parentId')) {
+      sanitizedData.parentId = body.parentId;
+    }
+
     const updatedTask = await prisma.task.update({
       where: {
         id: params.taskId,
