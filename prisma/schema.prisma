@@ -25,7 +25,7 @@ model Task {
   title        String
   description  String?
   content      String?
-  imageUrls    String[]
+  images       Json?        @default("[]")
   emoji        String?
   parentId     String?
   level        Int

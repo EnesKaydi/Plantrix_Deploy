@@ -3,7 +3,7 @@ export interface Task {
   title: string;
   description?: string; // Short description for the left panel
   content?: string; // Full content for the right panel editor
-  imageUrls?: string[]; // Allow multiple images
+  images?: TaskImage[]; // New structure for images
   emoji?: string; // Unified field for task icon
   parentId?: string | null;
   level: number;
@@ -13,6 +13,12 @@ export interface Task {
   createdAt: string; // Use ISO string for consistency
   updatedAt: string; // Use ISO string for consistency
   attachments: TaskAttachment[];
+}
+
+export interface TaskImage {
+  url: string;
+  width?: number; // Optional width for resizing
+  height?: number; // Optional height for resizing
 }
 
 export interface TaskAttachment {
@@ -39,7 +45,7 @@ export interface UpdateTaskInput {
   title?: string;
   description?: string;
   content?: string;
-  imageUrls?: string[]; // Allow multiple images
+  images?: TaskImage[]; // New structure for images
   emoji?: string;
   parentId?: string | null;
   level?: number;

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import * as Popover from '@radix-ui/react-popover';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { ConfirmDeleteDialogRef } from './ConfirmDeleteDialog';
+import { Resizable, ResizableProps } from 're-resizable';
 
 interface TaskEditorProps {
   deleteDialogRef: RefObject<ConfirmDeleteDialogRef>;
@@ -40,6 +41,9 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
       updateTask({ id: selectedTask.id, description: newDescription });
     }
   }, 1000);
+
+  // Ensure images are treated as an array
+  const images = Array.isArray(selectedTask?.images) ? selectedTask.images : [];
 
   useEffect(() => {
     if (selectedTask) {
@@ -140,7 +144,7 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
           <head><title>${selectedTask.title}</title></head>
           <body>
             <h1>${selectedTask.title}</h1>
-            ${selectedTask.imageUrls ? selectedTask.imageUrls.map(url => `<img src="${url}" style="max-width: 100%;" />`).join('') : ''}
+            ${images ? images.map(img => `<img src="${img.url}" style="width: ${img.width || 500}px; max-width: 100%;" />`).join('') : ''}
             <div style="white-space: pre-wrap; margin-top: 20px;">${selectedTask.content || ''}</div>
           </body>
         </html>
@@ -156,17 +160,41 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const newImageUrl = reader.result as string;
-        const updatedImageUrls = [...(selectedTask.imageUrls || []), newImageUrl];
-        updateTask({ id: selectedTask.id, imageUrls: updatedImageUrls });
+        const newImage = { url: newImageUrl, width: 300, height: 200 }; // Default size
+        const updatedImages = [...images, newImage];
+        updateTask({ id: selectedTask.id, images: updatedImages });
       };
       reader.readAsDataURL(file);
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (!selectedTask) return;
+
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (!file) continue;
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const newImageUrl = reader.result as string;
+          const newImage = { url: newImageUrl, width: 300, height: 200 }; // Default size
+          const updatedImages = [...images, newImage];
+          updateTask({ id: selectedTask.id, images: updatedImages });
+        };
+        reader.readAsDataURL(file);
+        
+        e.preventDefault(); 
+      }
+    }
+  };
+
   const handleRemoveImage = (urlToRemove: string) => {
     if (selectedTask) {
-      const updatedImageUrls = (selectedTask.imageUrls || []).filter(url => url !== urlToRemove);
-      updateTask({ id: selectedTask.id, imageUrls: updatedImageUrls });
+      const updatedImages = images.filter(img => img.url !== urlToRemove);
+      updateTask({ id: selectedTask.id, images: updatedImages });
     }
   };
 
@@ -232,7 +260,7 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
 
       {/* Content Area */}
       {selectedTask ? (
-        <div className="flex-1 flex flex-col overflow-y-auto p-6">
+        <div className="flex-1 flex flex-col overflow-y-auto p-6" onPaste={handlePaste}>
           {/* Header */}
           <div className="pb-4">
             {isEditingTitle ? (
@@ -250,42 +278,71 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
             )}
             <input
               type="text"
-              placeholder="Kısa açıklama ekle..."
+              placeholder="Kısa bir açıklama ekle..."
               value={description}
               onChange={handleDescriptionChange}
-              className="w-full bg-transparent text-sm text-muted-foreground mt-2 focus:outline-none"
+              className="w-full bg-transparent text-sm text-muted-foreground focus:outline-none mt-1"
             />
           </div>
 
           {/* Image Gallery */}
-          {(selectedTask.imageUrls && selectedTask.imageUrls.length > 0) && (
-            <div className="mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {selectedTask.imageUrls.map((url, index) => (
-                <div key={index} className="relative group">
-                  <img src={url} alt={`task-image-${index}`} className="rounded-lg object-cover w-full h-32" />
-                  <button onClick={() => handleRemoveImage(url)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
+          {(images && images.length > 0) && (
+            <div className="mb-6 flex flex-wrap gap-4">
+              {images.map((image, index) => (
+                <Resizable
+                  key={index}
+                  defaultSize={{
+                    width: image.width || 300,
+                    height: image.height || 200,
+                  }}
+                  onResizeStop={(e, direction, ref, d) => {
+                    if (selectedTask) {
+                      const updatedImages = images.map(img =>
+                        img.url === image.url
+                          ? { ...img, width: ref.offsetWidth, height: ref.offsetHeight }
+                          : img
+                      );
+                      updateTask({ id: selectedTask.id, images: updatedImages });
+                    }
+                  }}
+                  className="relative group border rounded-lg p-2"
+                  minWidth={100}
+                  minHeight={100}
+                  maxWidth={800}
+                  maxHeight={800}
+                >
+                  <img
+                    src={image.url}
+                    alt={`task-image-${index}`}
+                    className="w-full h-full object-cover rounded-md"
+                  />
+                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleRemoveImage(image.url)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </Resizable>
               ))}
             </div>
           )}
 
-          {/* Text Area */}
+          {/* Main Content Editor */}
           <textarea
+            className="flex-1 w-full bg-transparent text-base focus:outline-none resize-none"
+            placeholder="Notlarını buraya yaz..."
             value={content}
             onChange={handleContentChange}
-            placeholder="İçeriğinizi buraya yazın..."
-            className="flex-1 w-full bg-transparent resize-none focus:outline-none text-base"
           />
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground bg-background">
-          <div className="text-center">
-            <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium mb-2">Görev Seçilmedi</h3>
-            <p className="text-sm">Görüntülemek için bir görev seçin veya soldaki listeden yeni bir tane oluşturun.</p>
-          </div>
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+          <FileText className="h-12 w-12 mb-4" />
+          <p className="text-xl">Lütfen düzenlemek için bir görev seçin.</p>
         </div>
       )}
     </div>

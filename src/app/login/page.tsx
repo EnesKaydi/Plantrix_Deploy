@@ -97,20 +97,7 @@ export default function LoginPage() {
               {isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </Button>
           </form>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Veya
-              </span>
-            </div>
-          </div>
-          <Button variant="secondary" className="w-full" onClick={handleQuickLogin}>
-            Hızlı Giriş (Geliştirici)
-          </Button>
-          <div className="text-center">
+          <div className="text-center mt-4">
             <p className="text-sm text-muted-foreground">
               Hesabınız yok mu?{' '}
               <Link href="/register" className="font-medium text-primary hover:underline">

@@ -10,7 +10,10 @@ const buildTaskTree = (tasks: Task[], searchTerm: string = ''): TaskTreeNode[] =
   const rootTasks: TaskTreeNode[] = [];
   const lowercasedSearchTerm = searchTerm.toLowerCase();
   const filteredTasks = searchTerm
-    ? tasks.filter(task => task.title.toLowerCase().includes(lowercasedSearchTerm))
+    ? tasks.filter(task => 
+        task.title.toLowerCase().includes(lowercasedSearchTerm) ||
+        (task.content && task.content.toLowerCase().includes(lowercasedSearchTerm))
+      )
     : tasks;
   const visibleTaskIds = new Set<string>();
   if (searchTerm) {
