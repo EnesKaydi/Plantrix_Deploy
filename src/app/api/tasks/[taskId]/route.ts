@@ -30,31 +30,35 @@ export async function PATCH(
 
   try {
     const body = await req.json() as UpdateTaskInput;
-    const { title, content, description, ...rest } = body;
+    const { title, content, description, parentId, ...rest } = body;
 
-    const sanitizedData: Partial<UpdateTaskInput> = { ...rest };
+    // Build the update data object with proper typing for Prisma
+    const updateData: any = { ...rest };
 
     if (title) {
-      sanitizedData.title = DOMPurify.sanitize(title);
+      updateData.title = DOMPurify.sanitize(title);
     }
     if (content) {
-      sanitizedData.content = DOMPurify.sanitize(content);
+      updateData.content = DOMPurify.sanitize(content);
     }
     if (description) {
-      sanitizedData.description = DOMPurify.sanitize(description);
+      updateData.description = DOMPurify.sanitize(description);
     }
 
-    // Prisma's update is strict about `null` vs. `undefined`.
-    // Explicitly handle setting parentId to null.
+    // Handle parentId explicitly - Prisma expects specific handling for null values
     if (body.hasOwnProperty('parentId')) {
-      sanitizedData.parentId = body.parentId;
+      if (parentId === null) {
+        updateData.parentId = null;
+      } else if (parentId !== undefined) {
+        updateData.parentId = parentId;
+      }
     }
 
     const updatedTask = await prisma.task.update({
       where: {
         id: params.taskId,
       },
-      data: sanitizedData,
+      data: updateData,
     });
     return NextResponse.json(updatedTask);
   } catch (error) {
