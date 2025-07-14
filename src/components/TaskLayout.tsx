@@ -1,6 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useRef, useEffect } from 'react';
+import { TaskEditor } from './TaskEditor';
+import { TaskTreeView } from './TaskTreeView';
+import { SearchBar } from './SearchBar';
+import { ConfirmDeleteDialog, ConfirmDeleteDialogRef } from './ConfirmDeleteDialog';
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { 
   DndContext, 
   DragEndEvent,
@@ -9,24 +14,19 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { TaskTreeView } from './TaskTreeView';
-import { TaskEditor } from './TaskEditor';
 import { useTaskStore } from '@/store/taskStore';
-import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
-import { SearchBar } from './SearchBar';
-import { RainEffect } from './RainEffect';
-import { ThemeSwitcher } from './ThemeSwitcher';
 import { signOut, useSession } from 'next-auth/react';
 import { LogOut } from 'lucide-react';
 import { Button } from './ui/button';
+import { ThemeSwitcher } from './ThemeSwitcher';
+import { RainEffect } from './RainEffect';
 import { LoadingSpinner } from './ui/LoadingSpinner';
-import { useRef } from 'react';
-import { ConfirmDeleteDialogRef } from './ConfirmDeleteDialog';
+
 
 export function TaskLayout() {
+  const deleteDialogRef = useRef<ConfirmDeleteDialogRef>(null);
   const { fetchTasks, moveTask, isLoading } = useTaskStore();
   const { data: session } = useSession();
-  const deleteDialogRef = useRef<ConfirmDeleteDialogRef>(null);
 
   useEffect(() => {
     fetchTasks();
@@ -34,8 +34,6 @@ export function TaskLayout() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      // Require the mouse to move by 8 pixels before activating a drag.
-      // This allows for click events to be processed without triggering a drag.
       activationConstraint: {
         distance: 8,
       },
@@ -49,41 +47,45 @@ export function TaskLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <header className="p-5 border-b bg-card text-card-foreground relative overflow-hidden">
-        <div className="flex justify-between items-center relative z-10">
-          <div>
-            <h1 className="text-4xl font-bold plantrix-title w-fit">PLANTRİX</h1>
-            <p className="text-sm text-muted-foreground mt-1">hiç sıradan değil</p>
-          </div>
-          <div className="flex items-center gap-4">
-            {session?.user?.name && <span className="text-sm welcome-text-animated">Hoş geldin, {session.user.name}!</span>}
-            <ThemeSwitcher />
-            <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Logout">
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-        <RainEffect />
-      </header>
-      <div className="flex flex-1 overflow-hidden">
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <div className="w-1/3 border-r overflow-y-auto p-6 bg-card flex flex-col">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-semibold text-card-foreground">Görev Listesi</h2>
+       <header className="p-5 border-b bg-card text-card-foreground relative overflow-hidden">
+         <div className="flex justify-between items-center relative z-10">
+           <div>
+             <h1 className="text-4xl font-bold plantrix-title w-fit">PLANTRİX</h1>
+             <p className="text-sm text-muted-foreground mt-1">hiç sıradan değil</p>
+           </div>
+           <div className="flex items-center gap-4">
+             {session?.user?.name && <span className="text-sm welcome-text-animated">Hoş geldin, {session.user.name}!</span>}
+             <ThemeSwitcher />
+             <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Logout">
+               <LogOut className="h-5 w-5" />
+             </Button>
+           </div>
+         </div>
+         <RainEffect />
+       </header>
+      <PanelGroup
+        direction="horizontal"
+        className="flex-1 w-full"
+      >
+        <Panel defaultSize={30} minSize={20}>
+          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            <div className="h-full flex flex-col">
+              <div className="p-4 border-b">
+                <SearchBar />
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                 {isLoading ? <div className="flex justify-center items-center h-full"><LoadingSpinner /></div> : <TaskTreeView />}
+              </div>
             </div>
-            <div className="mb-2">
-              <SearchBar />
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {isLoading ? <div className="flex justify-center items-center h-full"><LoadingSpinner /></div> : <TaskTreeView />}
-            </div>
-          </div>
-          <div className="flex-1 bg-background">
-            <TaskEditor deleteDialogRef={deleteDialogRef} />
-          </div>
-        </DndContext>
-        <ConfirmDeleteDialog ref={deleteDialogRef} />
-      </div>
+          </DndContext>
+        </Panel>
+        <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
+        <Panel defaultSize={70}>
+          <TaskEditor deleteDialogRef={deleteDialogRef} />
+        </Panel>
+      </PanelGroup>
+      
+      <ConfirmDeleteDialog ref={deleteDialogRef} />
     </div>
   );
 } 

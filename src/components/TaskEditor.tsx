@@ -323,9 +323,9 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
                       className="h-7 w-7"
                       onClick={() => handleRemoveImage(image.url)}
                     >
-                      <X className="h-4 w-4" />
+                    <X className="h-4 w-4" />
                     </Button>
-                  </div>
+                </div>
                 </Resizable>
               ))}
             </div>

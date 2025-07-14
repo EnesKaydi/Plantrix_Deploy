@@ -3,55 +3,88 @@ import { Task, CreateTaskInput, UpdateTaskInput, TaskTreeNode } from '@/types/ta
 import { DragEndEvent } from '@dnd-kit/core';
 import axios from 'axios';
 
+interface BuildTreeResult {
+  tree: TaskTreeNode[];
+  matchedIds: Set<string>;
+}
+
 // The buildTaskTree utility function remains the same.
 // ... (buildTaskTree fonksiyonunu buraya olduğu gibi kopyalayacağız)
-const buildTaskTree = (tasks: Task[], searchTerm: string = ''): TaskTreeNode[] => {
-  const taskMap = new Map<string, TaskTreeNode>();
-  const rootTasks: TaskTreeNode[] = [];
-  const lowercasedSearchTerm = searchTerm.toLowerCase();
-  const filteredTasks = searchTerm
-    ? tasks.filter(task => 
-        task.title.toLowerCase().includes(lowercasedSearchTerm) ||
-        (task.content && task.content.toLowerCase().includes(lowercasedSearchTerm))
-      )
-    : tasks;
-  const visibleTaskIds = new Set<string>();
-  if (searchTerm) {
-    const taskAndParents = new Set<string>();
-    filteredTasks.forEach(task => {
-      taskAndParents.add(task.id);
-      let parentId = task.parentId;
-      while(parentId) {
-        const parent = tasks.find(t => t.id === parentId);
-        if (parent) {
-          taskAndParents.add(parent.id);
-          parentId = parent.parentId;
-        } else {
-          parentId = null;
-        }
-      }
-    });
+const buildTaskTree = (tasks: Task[], searchTerm: string = ''): BuildTreeResult => {
+  if (!searchTerm) {
+    // If no search term, build the full tree without any matches.
+    const taskMap = new Map<string, TaskTreeNode>();
+    const rootTasks: TaskTreeNode[] = [];
+    tasks.forEach(task => taskMap.set(task.id, { ...task, children: [] }));
     tasks.forEach(task => {
-        if(taskAndParents.has(task.id)) {
-            visibleTaskIds.add(task.id);
-        }
-    });
-  }
-  const tasksToProcess = searchTerm ? tasks.filter(t => visibleTaskIds.has(t.id)) : tasks;
-  tasksToProcess.forEach(task => {
-    taskMap.set(task.id, { ...task, children: [], isExpanded: searchTerm ? true : undefined });
-  });
-  tasksToProcess.forEach(task => {
-    const taskNode = taskMap.get(task.id)!;
-    if (!task.parentId || !taskMap.has(task.parentId)) {
-      rootTasks.push(taskNode);
-    } else {
-      const parent = taskMap.get(task.parentId);
-      if (parent) {
-        parent.children.push(taskNode);
+      const taskNode = taskMap.get(task.id)!;
+      if (task.parentId && taskMap.has(task.parentId)) {
+        taskMap.get(task.parentId)!.children.push(taskNode);
+      } else {
+        rootTasks.push(taskNode);
       }
+    });
+    // Sort logic here if needed
+    return { tree: rootTasks, matchedIds: new Set() };
+  }
+
+  const allTasksMap = new Map<string, Task>();
+  tasks.forEach(task => allTasksMap.set(task.id, task));
+
+  const lowercasedSearchTerm = searchTerm.toLowerCase();
+  const directlyMatchedIds = new Set<string>();
+  
+  tasks.forEach(task => {
+    const isMatch = task.title.toLowerCase().includes(lowercasedSearchTerm) ||
+                  (task.content && task.content.toLowerCase().includes(lowercasedSearchTerm));
+    if (isMatch) {
+      directlyMatchedIds.add(task.id);
     }
   });
+
+  // Filter the matches: only highlight the lowest-level task in a hierarchy.
+  const finalHighlightedIds = new Set(directlyMatchedIds);
+  directlyMatchedIds.forEach(id => {
+    const task = allTasksMap.get(id);
+    if (!task) return;
+
+    // Check if any child of this task is also a direct match.
+    // This requires iterating through all tasks to find children.
+    tasks.forEach(potentialChild => {
+      if (potentialChild.parentId === id && directlyMatchedIds.has(potentialChild.id)) {
+        // If a child is a match, remove the parent from the highlighted set.
+        finalHighlightedIds.delete(id);
+      }
+    });
+  });
+
+  const visibleTaskIds = new Set<string>();
+  directlyMatchedIds.forEach(id => {
+    let currentId: string | null | undefined = id;
+    while (currentId && allTasksMap.has(currentId)) {
+      visibleTaskIds.add(currentId);
+      currentId = allTasksMap.get(currentId)?.parentId;
+    }
+  });
+
+  const tasksToProcess = tasks.filter(t => visibleTaskIds.has(t.id));
+  const taskMap = new Map<string, TaskTreeNode>();
+  const rootTasks: TaskTreeNode[] = [];
+
+  tasksToProcess.forEach(task => {
+    taskMap.set(task.id, { ...task, children: [], isExpanded: true });
+  });
+
+  tasksToProcess.forEach(task => {
+    const taskNode = taskMap.get(task.id)!;
+    if (task.parentId && taskMap.has(task.parentId)) {
+      taskMap.get(task.parentId)!.children.push(taskNode);
+    } else {
+      rootTasks.push(taskNode);
+    }
+  });
+  
+  // Sort logic here
   const sortByOrderIndex = (nodes: TaskTreeNode[]) => {
     nodes.sort((a, b) => a.orderIndex - b.orderIndex);
     nodes.forEach(node => {
@@ -61,7 +94,9 @@ const buildTaskTree = (tasks: Task[], searchTerm: string = ''): TaskTreeNode[] =
     });
   };
   sortByOrderIndex(rootTasks);
-  return rootTasks;
+
+
+  return { tree: rootTasks, matchedIds: finalHighlightedIds };
 };
 
 
@@ -69,6 +104,7 @@ interface TaskStore {
   tasks: Task[];
   selectedTaskId: string | null;
   searchTerm: string;
+  expandedIds: Set<string>; // New state for managing expanded nodes
   isLoading: boolean;
   error: string | null;
   
@@ -84,10 +120,12 @@ interface TaskStore {
   // Local state actions
   setSelectedTask: (id: string | null) => void;
   setSearchTerm: (term: string) => void;
+  toggleExpansion: (taskId: string) => void; // New action
+  setAllExpansion: (expand: boolean) => void; // New action
   moveTask: (event: DragEndEvent) => Promise<void>;
   
   // Getters
-  getTaskTree: () => TaskTreeNode[];
+  getTaskTree: () => BuildTreeResult;
   getSelectedTask: () => Task | null;
 }
 
@@ -95,6 +133,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
   selectedTaskId: null,
   searchTerm: '',
+  expandedIds: new Set(), // Initialize with an empty set
   isLoading: true, // Start with loading true until first fetch is done
   error: null,
 
@@ -183,6 +222,31 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   setSelectedTask: (id: string | null) => set({ selectedTaskId: id }),
   
   setSearchTerm: (term: string) => set({ searchTerm: term }),
+
+  toggleExpansion: (taskId: string) => {
+    set(state => {
+      const newExpandedIds = new Set(state.expandedIds);
+      if (newExpandedIds.has(taskId)) {
+        newExpandedIds.delete(taskId);
+      } else {
+        newExpandedIds.add(taskId);
+      }
+      return { expandedIds: newExpandedIds };
+    });
+  },
+
+  setAllExpansion: (expand: boolean) => {
+    set(state => {
+      if (expand) {
+        // Expand all tasks that have children by finding all unique parentIds
+        const allParentIds = new Set(state.tasks.map(t => t.parentId).filter((id): id is string => !!id));
+        return { expandedIds: allParentIds };
+      } else {
+        // Collapse all
+        return { expandedIds: new Set() };
+      }
+    });
+  },
 
   moveTask: async (event: DragEndEvent) => {
     const { active, over } = event;

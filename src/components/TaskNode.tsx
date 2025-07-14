@@ -10,28 +10,28 @@ import { cn, getLevelIndentation, getLevelPrefix } from '@/lib/utils';
 
 interface TaskNodeProps {
   task: TaskTreeNode;
+  matchedIds: Set<string>; // Receive the full set of matched IDs
 }
 
-export function TaskNode({ task }: TaskNodeProps) {
-  const [isExpandedState, setIsExpandedState] = useState(true);
+export function TaskNode({ task, matchedIds }: TaskNodeProps) {
   const [isMounted, setIsMounted] = useState(false);
   const { 
     selectedTaskId, 
     setSelectedTask, 
     toggleTaskCompletion,
-    deleteTask 
+    deleteTask,
+    // New state and actions for expansion
+    expandedIds,
+    toggleExpansion,
   } = useTaskStore();
   
-  // For search, task.isExpanded will be true. Otherwise, use local state.
-  const isExpanded = task.isExpanded ?? isExpandedState;
-  const setIsExpanded = (val: boolean) => {
-    if (task.isExpanded === undefined) {
-      setIsExpandedState(val);
-    }
-  }
+  // The node is expanded if its ID is in the central set.
+  // For search results, we still rely on task.isExpanded to force expansion.
+  const isExpanded = task.isExpanded || expandedIds.has(task.id);
 
   const isSelected = selectedTaskId === task.id;
   const hasChildren = task.children && task.children.length > 0;
+  const isMatched = matchedIds.has(task.id);
 
   useEffect(() => {
     setIsMounted(true);
@@ -61,7 +61,7 @@ export function TaskNode({ task }: TaskNodeProps) {
 
   const handleToggleExpand = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card from being selected when toggling
-    setIsExpanded(!isExpanded);
+    toggleExpansion(task.id);
   };
 
   const style = transform ? {
@@ -79,24 +79,27 @@ export function TaskNode({ task }: TaskNodeProps) {
             }}
             style={style}
             className={cn(
-              'task-node p-3 mb-2 border rounded-lg transition-all duration-200 select-none cursor-pointer',
+              'task-node p-2 mb-1 border rounded-md transition-all duration-200 select-none cursor-pointer', // Reduced padding and margin
               'hover:shadow-md hover:border-primary/50',
-              task.isImportant && !task.isCompleted && 'task-important', // Add important class
-              task.isCompleted && 'task-completed', // Use the new class for completed tasks
-              isSelected && 'bg-primary/10 border-primary shadow-lg',
-              !task.isCompleted && !isSelected && !task.isImportant && 'bg-card border-border',
+              // Prioritize selection and completion styles first
+              isSelected && 'bg-primary/10 shadow-lg',
+              task.isCompleted && 'task-completed',
+              task.isImportant && !task.isCompleted && 'task-important',
+              // Apply border color based on state, with `isMatched` having the highest priority
+              isMatched ? 'border-red-500 border-2' : (isSelected ? 'border-primary' : 'border-border'),
+              !task.isCompleted && !isSelected && !task.isImportant && 'bg-card',
               isDragging && 'dragging opacity-50 scale-95'
             )}
             onClick={handleTaskClick}
             {...dndAttributes}
             {...listeners}
           >
-            <div className="flex items-center gap-3">
-              <span className="text-3xl w-9 text-center">{task.emoji || '📄'}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xl w-7 text-center">{task.emoji || '📄'}</span>
               {hasChildren && (
                 <button
                   onClick={handleToggleExpand}
-                  className="p-1 rounded hover:bg-gray-200 transition-colors"
+                  className="p-0.5 rounded hover:bg-gray-200 transition-colors"
                 >
                   {isExpanded ? (
                     <ChevronDown className="h-4 w-4" />
@@ -110,7 +113,7 @@ export function TaskNode({ task }: TaskNodeProps) {
                 <div className="flex items-center">
                   <span className="font-mono text-xs text-muted-foreground mr-2">{getLevelPrefix(task.level)}</span>
                   <span className={cn(
-                    'font-medium truncate',
+                    'font-normal text-sm truncate', // Reduced font size
                     task.isCompleted ? 'text-inherit' : 'text-card-foreground'
                   )}>
                     {task.title}
@@ -118,7 +121,7 @@ export function TaskNode({ task }: TaskNodeProps) {
                 </div>
                 
                 {task.description && (
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2 italic">
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 italic">
                     {task.description}
                   </p>
                 )}
@@ -166,7 +169,7 @@ export function TaskNode({ task }: TaskNodeProps) {
       {hasChildren && isExpanded && (
         <div className="mt-2">
           {task.children.map((child) => (
-            <TaskNode key={child.id} task={child} />
+            <TaskNode key={child.id} task={child} matchedIds={matchedIds} />
           ))}
         </div>
       )}
