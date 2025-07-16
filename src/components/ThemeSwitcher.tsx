@@ -24,7 +24,7 @@ export function ThemeSwitcher() {
           className={cn(
             "flex items-center gap-2 transition-all",
             theme === t.name
-              ? 'bg-background text-foreground shadow-sm'
+              ? 'bg-background text-foreground shadow-sm border border-primary scale-105'
               : 'text-muted-foreground'
           )}
         >

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { TaskEditor } from './TaskEditor';
+import dynamic from 'next/dynamic';
 import { TaskTreeView } from './TaskTreeView';
 import { SearchBar } from './SearchBar';
 import { ConfirmDeleteDialog, ConfirmDeleteDialogRef } from './ConfirmDeleteDialog';
@@ -21,6 +21,11 @@ import { Button } from './ui/button';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { RainEffect } from './RainEffect';
 import { LoadingSpinner } from './ui/LoadingSpinner';
+
+const DynamicTaskEditor = dynamic(() => import('./TaskEditor').then(mod => mod.TaskEditor), {
+  ssr: false,
+  loading: () => <div className="flex justify-center items-center h-full"><LoadingSpinner /></div>,
+});
 
 
 export function TaskLayout() {
@@ -81,7 +86,7 @@ export function TaskLayout() {
         </Panel>
         <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
         <Panel defaultSize={70}>
-          <TaskEditor deleteDialogRef={deleteDialogRef} />
+          <DynamicTaskEditor deleteDialogRef={deleteDialogRef} />
         </Panel>
       </PanelGroup>
       

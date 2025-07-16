@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import * as ContextMenu from '@radix-ui/react-context-menu';
-import { ChevronRight, ChevronDown, CheckSquare, Trash2, Star } from 'lucide-react'; // Import Star
+import { ChevronRight, ChevronDown, CheckSquare, Trash2, Star, Plus, FilePlus } from 'lucide-react'; // Import Star
 import { TaskTreeNode } from '@/types/task';
 import { useTaskStore } from '@/store/taskStore';
 import { cn, getLevelIndentation, getLevelPrefix } from '@/lib/utils';
@@ -20,6 +20,8 @@ export function TaskNode({ task, matchedIds }: TaskNodeProps) {
     setSelectedTask, 
     toggleTaskCompletion,
     deleteTask,
+    addTask,
+    tasks,
     // New state and actions for expansion
     expandedIds,
     toggleExpansion,
@@ -133,32 +135,45 @@ export function TaskNode({ task, matchedIds }: TaskNodeProps) {
         {isMounted && (
           <ContextMenu.Portal>
             <ContextMenu.Content className="w-56 bg-card border rounded-md shadow-lg p-1">
-              <ContextMenu.Item 
+              <ContextMenu.Item
                 className="context-menu-item"
                 onSelect={() => toggleTaskCompletion(task.id)}
               >
                 <CheckSquare className="mr-2 h-4 w-4" />
                 <span>{task.isCompleted ? 'Yapılmadı Olarak İşaretle' : 'Tamamlandı Olarak İşaretle'}</span>
               </ContextMenu.Item>
-              {/* Temporarily removing the "Important" feature to fix build */}
-              {/* <ContextMenu.Item 
-                className="context-menu-item"
-                onSelect={() => toggleTaskImportant(task.id)}
-              >
-                <Star className={cn("mr-2 h-4 w-4", task.isImportant && "fill-current text-amber-500")} />
-                <span>{task.isImportant ? 'Önemli Değil' : 'Önemli Olarak İşaretle'}</span>
-              </ContextMenu.Item> */}
-              <ContextMenu.Separator className="h-px bg-border my-1" />
-              <ContextMenu.Item 
-                className="context-menu-item destructive"
-                onSelect={() => {
-                  if (window.confirm(`"${task.title}" görevini ve tüm alt görevlerini silmek istediğinizden emin misiniz?`)) {
-                    deleteTask(task.id);
-                  }
-                }}
+              <ContextMenu.Item
+                  className="context-menu-item destructive"
+                  onSelect={() => {
+                    if (window.confirm(`"${task.title}" görevini ve tüm alt görevlerini silmek istediğinizden emin misiniz?`)) {
+                      deleteTask(task.id);
+                    }
+                  }}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Sil
+              </ContextMenu.Item>
+              <ContextMenu.Separator className="h-px bg-border my-1" />
+              <ContextMenu.Item
+                  className="context-menu-item"
+                  onSelect={() => {
+                    const newOrderIndex = task.children.length;
+                    addTask({ title: 'Yeni Alt Görev', parentId: task.id, level: task.level + 1, orderIndex: newOrderIndex });
+                  }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Yeni alt sayfa ekle
+              </ContextMenu.Item>
+              <ContextMenu.Item
+                  className="context-menu-item"
+                  onSelect={() => {
+                    const rootTasks = tasks.filter(t => !t.parentId);
+                    const newOrderIndex = rootTasks.length;
+                    addTask({ title: 'Yeni Görev', level: 1, orderIndex: newOrderIndex });
+                  }}
+              >
+                <FilePlus className="mr-2 h-4 w-4" />
+                Sayfa ekle
               </ContextMenu.Item>
             </ContextMenu.Content>
           </ContextMenu.Portal>
