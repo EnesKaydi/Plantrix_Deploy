@@ -13,12 +13,32 @@ import {
   WrapText,
 } from 'lucide-react';
 import { Button } from './ui/button';
+import { useState, useEffect } from 'react';
 
 type TiptapToolbarProps = {
   editor: Editor | null;
 };
 
 export function TiptapToolbar({ editor }: TiptapToolbarProps) {
+  const [, setForceUpdate] = useState(0);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    const handleUpdate = () => {
+      setForceUpdate((val) => val + 1);
+    };
+
+    editor.on('update', handleUpdate);
+    editor.on('selectionUpdate', handleUpdate);
+
+    return () => {
+      editor.off('update', handleUpdate);
+      editor.off('selectionUpdate', handleUpdate);
+    };
+  }, [editor]);
+
   if (!editor) {
     return null;
   }
