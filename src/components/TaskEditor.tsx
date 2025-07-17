@@ -9,11 +9,12 @@ import * as Popover from '@radix-ui/react-popover';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { ConfirmDeleteDialogRef } from './ConfirmDeleteDialog';
 import { Resizable, ResizableProps } from 're-resizable';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, ReactNodeViewRenderer } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import DOMPurify from 'isomorphic-dompurify';
 import { TiptapToolbar } from './TiptapToolbar';
+import ImageResizeView from './ImageResize';
 
 
 interface TaskEditorProps {
@@ -40,7 +41,11 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
     immediatelyRender: false,
     extensions: [
       StarterKit,
-      Image.configure({
+      Image.extend({
+        addNodeView() {
+          return ReactNodeViewRenderer(ImageResizeView);
+        },
+      }).configure({
         inline: false,
         allowBase64: true,
       }),
@@ -80,7 +85,10 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
       const currentContent = editor.getHTML();
       const newContent = selectedTask.content || '';
       if (currentContent !== newContent) {
-        editor.commands.setContent(newContent);
+        // Defer this command to prevent flushSync error during render
+        setTimeout(() => {
+          editor.commands.setContent(newContent);
+        }, 0);
       }
       setDescription(selectedTask.description || '');
       setTitleValue(selectedTask.title);
