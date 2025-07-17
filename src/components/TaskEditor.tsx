@@ -193,7 +193,11 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
         </html>
       `);
       printWindow.document.close();
-      printWindow.print();
+      printWindow.focus(); // Focus on the new window is important for some browsers
+      setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+      }, 500);
     }
   };
 

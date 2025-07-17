@@ -157,10 +157,17 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       const response = await axios.post<Task>('/api/tasks', input);
       const newTask = response.data;
-      set(state => ({
-        tasks: [...state.tasks, newTask],
-        selectedTaskId: newTask.id,
-      }));
+      set(state => {
+        const newExpandedIds = new Set(state.expandedIds);
+        if (input.parentId) {
+          newExpandedIds.add(input.parentId);
+        }
+        return {
+          tasks: [...state.tasks, newTask],
+          selectedTaskId: newTask.id,
+          expandedIds: newExpandedIds,
+        };
+      });
     } catch (error: unknown) {
       // Error handling - could be improved with toast notifications
       set(state => ({ ...state, error: 'Görev eklenemedi.' }));
