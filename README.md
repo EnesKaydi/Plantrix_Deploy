@@ -67,8 +67,8 @@ To get a local copy up and running, follow these simple steps.
     ```
 2.  Install NPM packages
     ```sh
-    npm install
-    ```
+   npm install
+   ```
 3.  Set up your environment variables by creating a `.env` file in the root of your project. You'll need to provide a `DATABASE_URL` for Prisma and a `NEXTAUTH_SECRET` for NextAuth.js.
     ```env
     DATABASE_URL="your_database_url"
@@ -80,8 +80,8 @@ To get a local copy up and running, follow these simple steps.
     ```
 5.  Start the development server
     ```sh
-    npm run dev
-    ```
+   npm run dev
+   ```
 
 Now, open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
 

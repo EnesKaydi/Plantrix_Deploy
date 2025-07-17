@@ -66,10 +66,10 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
 
   const debouncedContentSave = useCallback(
     debounce((newContent: string) => {
-      if (selectedTask) {
+    if (selectedTask) {
         const sanitizedContent = DOMPurify.sanitize(newContent);
         updateTask({ id: selectedTask.id, content: sanitizedContent });
-      }
+    }
     }, 1000),
     [selectedTask, updateTask]
   );
@@ -171,7 +171,7 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
       deleteDialogRef.current?.requestDelete(selectedTask.id);
     }
   };
-  
+
   const handlePrint = () => {
     if (!selectedTask || !editor) return;
     const printWindow = window.open('', '_blank');
@@ -215,7 +215,7 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
             <p>Yükleniyor...</p>
         </div>
     );
-  }
+    }
 
   return (
     <div className="h-full flex flex-col bg-background text-foreground relative">
@@ -292,7 +292,7 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
                 onChange={handleImageUpload}
                 className="hidden"
             />
-        </label>
+          </label>
       </div>
 
       {selectedTask ? (
@@ -301,15 +301,15 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
           <div className="p-4 border-b">
             {isEditingTitle ? (
               <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={titleValue}
-                  onChange={(e) => setTitleValue(e.target.value)}
-                  onKeyDown={handleTitleKeyDown}
-                  onBlur={handleTitleSave}
+              <input
+                type="text"
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onKeyDown={handleTitleKeyDown}
+                onBlur={handleTitleSave}
                   className="text-4xl font-bold bg-transparent outline-none w-full"
-                  autoFocus
-                />
+                autoFocus
+              />
                 <Button size="icon" variant="ghost" onClick={handleTitleSave}>
                   <Check className="h-5 w-5" />
                 </Button>
@@ -338,7 +338,7 @@ export function TaskEditor({ deleteDialogRef }: TaskEditorProps) {
           <div className="flex-1 p-4">
              {isToolbarOpen && <TiptapToolbar editor={editor} />}
              <EditorContent editor={editor} className="mt-2"/>
-          </div>
+            </div>
 
         </div>
       ) : (

@@ -135,20 +135,20 @@ export function TaskNode({ task, matchedIds }: TaskNodeProps) {
         {isMounted && (
           <ContextMenu.Portal>
             <ContextMenu.Content className="w-56 bg-card border rounded-md shadow-lg p-1">
-              <ContextMenu.Item
+              <ContextMenu.Item 
                 className="context-menu-item"
                 onSelect={() => toggleTaskCompletion(task.id)}
               >
                 <CheckSquare className="mr-2 h-4 w-4" />
                 <span>{task.isCompleted ? 'Yapılmadı Olarak İşaretle' : 'Tamamlandı Olarak İşaretle'}</span>
               </ContextMenu.Item>
-              <ContextMenu.Item
-                  className="context-menu-item destructive"
-                  onSelect={() => {
-                    if (window.confirm(`"${task.title}" görevini ve tüm alt görevlerini silmek istediğinizden emin misiniz?`)) {
-                      deleteTask(task.id);
-                    }
-                  }}
+              <ContextMenu.Item 
+                className="context-menu-item destructive"
+                onSelect={() => {
+                  if (window.confirm(`"${task.title}" görevini ve tüm alt görevlerini silmek istediğinizden emin misiniz?`)) {
+                    deleteTask(task.id);
+                  }
+                }}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Sil
